@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6feb">
+  <title>Stream Remote</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div id="boot" class="boot">Loading…</div>
+
+  <!-- Sign in / setup / invite ------------------------------------------------------------>
+  <section class="view auth" data-view="login" hidden>
+    <form class="auth-card" id="login-form">
+      <img class="auth-logo" src="/icon-192.png" alt="">
+      <h1>Stream Remote</h1>
+      <p class="muted">Sign in to control the stream PC.</p>
+      <label>Email<input name="email" type="email" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <p class="form-error" data-error></p>
+      <button class="btn primary block" type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <section class="view auth" data-view="setup" hidden>
+    <form class="auth-card" id="setup-form">
+      <img class="auth-logo" src="/icon-192.png" alt="">
+      <h1>Create the owner account</h1>
+      <p class="muted">First start only. The setup code is shown where the server runs (or is the SETUP_CODE you set).</p>
+      <label>Setup code<input name="code" autocomplete="off" required></label>
+      <label>Your email<input name="email" type="email" autocomplete="username" required></label>
+      <label>Password (10+ characters)<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
+      <label>Repeat password<input name="password2" type="password" autocomplete="new-password" minlength="10" required></label>
+      <p class="form-error" data-error></p>
+      <button class="btn primary block" type="submit">Create account</button>
+    </form>
+  </section>
+
+  <section class="view auth" data-view="invite" hidden>
+    <form class="auth-card" id="invite-form">
+      <img class="auth-logo" src="/icon-192.png" alt="">
+      <h1>Set your password</h1>
+      <p class="muted">You were invited as <strong data-invite-email></strong>.</p>
+      <label>Password (10+ characters)<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
+      <label>Repeat password<input name="password2" type="password" autocomplete="new-password" minlength="10" required></label>
+      <p class="form-error" data-error></p>
+      <button class="btn primary block" type="submit">Save and sign in</button>
+    </form>
+  </section>
+
+  <!-- App shell ---------------------------------------------------------------------------->
+  <header class="topbar" id="topbar" hidden>
+    <img class="top-logo" src="/icon-192.png" alt="">
+    <div class="top-title">
+      <strong>Stream Remote</strong>
+      <span id="pc-line" class="muted small"></span>
+    </div>
+    <span id="pc-pill" class="pill">…</span>
+    <nav class="top-nav">
+      <button class="btn ghost small" id="nav-home" type="button">Home</button>
+      <button class="btn ghost small" id="nav-download" type="button">Download</button>
+      <button class="btn ghost small" id="nav-admin" type="button" hidden>Admin</button>
+      <button class="btn ghost small" id="nav-logout" type="button">Sign out</button>
+    </nav>
+  </header>
+
+  <main class="view dash" data-view="home" hidden>
+    <div class="banner warn" id="offline-banner" hidden></div>
+    <div class="field-row" id="pc-select-row" hidden>
+      <label class="small muted" for="pc-select">PC</label>
+      <select id="pc-select"></select>
+    </div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Stream</h2>
+        <span id="stream-pill" class="pill">Idle</span>
+      </div>
+      <p id="stream-message" class="muted"></p>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-start" type="button">Start Stream</button>
+        <button class="btn danger" id="btn-end" type="button">End Stream</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn success" id="btn-live" type="button" hidden>I'm live</button>
+        <button class="btn" id="btn-cancel" type="button" hidden>Cancel</button>
+      </div>
+      <ol class="steps" id="steps"></ol>
+      <div class="banner error" id="error-box" hidden>
+        <strong id="error-text"></strong>
+        <span id="error-hint"></span>
+        <button class="btn small" id="btn-dismiss" type="button">Dismiss</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Share</h2>
+        <span id="share-pill" class="pill">Not sharing</span>
+      </div>
+      <div class="btn-row three">
+        <button class="btn" id="btn-share-image" type="button">Share Image</button>
+        <button class="btn" id="btn-share-screen" type="button">Share Screen</button>
+        <button class="btn" id="btn-stop-share" type="button">Stop Share</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Image</h2>
+        <span id="image-count" class="muted small"></span>
+      </div>
+      <div class="preview"><img id="preview" alt="Image that will be shared"><span id="preview-empty" class="muted">No image selected</span></div>
+      <p id="image-name" class="small center"></p>
+      <div class="field-row">
+        <select id="image-select" aria-label="Choose image"></select>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn-next-image" type="button">Random image</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Daily schedule</h2>
+        <span id="schedule-pill" class="pill">Off</span>
+      </div>
+      <div class="field-row">
+        <label for="schedule-time">Start time</label>
+        <input id="schedule-time" type="time" required>
+      </div>
+      <label class="switch-row"><span>Start automatically every day</span><input id="schedule-enabled" type="checkbox" class="switch"></label>
+      <p id="schedule-next" class="muted small"></p>
+      <button class="btn primary block" id="btn-save-schedule" type="button">Save schedule</button>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>PC screen</h2>
+        <span id="screen-pill" class="pill">Off</span>
+      </div>
+      <div class="screen" id="screen-box" hidden><img id="screen" alt="Live view of the PC screen"></div>
+      <p class="muted small">The PC sends its screen only while this view is open.</p>
+      <button class="btn block" id="btn-watch" type="button">Show live screen</button>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Zoom</h2>
+        <span id="zoom-pill" class="pill">…</span>
+      </div>
+      <p id="zoom-meeting" class="muted small"></p>
+      <button class="btn block" id="btn-open-zoom" type="button">Open Zoom meeting</button>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Activity on the PC</h2></div>
+      <ul class="logs" id="logs"></ul>
+    </section>
+  </main>
+
+  <main class="view dash" data-view="download" hidden>
+    <section class="card">
+      <div class="card-head"><h2>Desktop app</h2><span class="pill" id="dl-version"></span></div>
+      <p class="muted">Zoom Stream Automation for the Windows 10/11 PC that runs Zoom. Download it on that PC.</p>
+      <div class="stack" id="dl-files"></div>
+      <p class="muted small" id="dl-empty" hidden>No installer has been uploaded to the website yet.</p>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>After installing</h2></div>
+      <ol class="steps-list">
+        <li>Open the app. Your settings and schedule from an older version are kept.</li>
+        <li>To control it from here, the owner opens <strong>Admin → Add a PC</strong> and types the code in the app's <strong>Remote</strong> tab.</li>
+        <li>If Windows shows "Windows protected your PC", click <strong>More info → Run anyway</strong> (the installer is not code-signed).</li>
+      </ol>
+    </section>
+  </main>
+
+  <main class="view dash" data-view="admin" hidden>
+    <section class="card">
+      <div class="card-head"><h2>PCs</h2></div>
+      <ul class="list" id="device-list"></ul>
+      <button class="btn primary block" id="btn-pair" type="button">Add a PC</button>
+      <div class="banner info" id="pair-box" hidden>
+        <span>In the desktop app, open <strong>Remote</strong>, enter this website's address and this code:</span>
+        <code class="pair-code" id="pair-code"></code>
+        <span class="small" id="pair-expiry"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>People</h2></div>
+      <ul class="list" id="user-list"></ul>
+      <form class="stack" id="invite-user-form">
+        <label>Invite by email<input name="email" type="email" required></label>
+        <label>Role
+          <select name="role"><option value="client">Client – controls the stream</option><option value="owner">Owner – also manages people and PCs</option></select>
+        </label>
+        <p class="form-error" data-error></p>
+        <button class="btn block" type="submit">Create invite link</button>
+      </form>
+      <div class="banner info" id="invite-box" hidden>
+        <span>Send this link to the person (valid <span id="invite-days"></span> days, one use):</span>
+        <input id="invite-link" readonly>
+        <button class="btn small" id="btn-copy-invite" type="button">Copy link</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Change my password</h2></div>
+      <form class="stack" id="password-form">
+        <label>Current password<input name="current" type="password" autocomplete="current-password" required></label>
+        <label>New password (10+ characters)<input name="next" type="password" autocomplete="new-password" minlength="10" required></label>
+        <p class="form-error" data-error></p>
+        <button class="btn block" type="submit">Change password</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Who did what</h2></div>
+      <ul class="logs" id="audit-list"></ul>
+    </section>
+  </main>
+
+  <div class="dialog-backdrop" id="confirm" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <h3 id="confirm-title"></h3>
+      <p id="confirm-text" class="muted"></p>
+      <div class="btn-row">
+        <button class="btn" id="confirm-no" type="button">Cancel</button>
+        <button class="btn danger" id="confirm-yes" type="button">Yes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+</body>
+</html>

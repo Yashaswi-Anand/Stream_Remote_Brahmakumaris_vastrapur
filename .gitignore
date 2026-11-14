@@ -1,0 +1,13 @@
+# Dependencies and build output
+node_modules/
+renderer-dist/
+dist/
+dist-build/
+*.log
+
+# Never commit secrets, local data or uploaded installers
+.env
+*.env.local
+server/data/
+server/downloads/
+.claude/settings.local.json
