@@ -15,7 +15,8 @@
     "rules": "node firebase/build-rules.js",
     "test:firebase": "node firebase/test-emulators.js",
     "web:local": "node firebase/local.js",
-    "deploy": "node firebase/build-rules.js && npx --yes firebase-tools@15.34.2 deploy --only hosting,database"
+    "deploy": "node firebase/build-rules.js && npx --yes firebase-tools@15.34.2 deploy --only hosting,database",
+    "release": "node scripts/release.js"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
