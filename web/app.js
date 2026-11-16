@@ -852,8 +852,8 @@ async function start() {
   }
   const host = location.hostname;
   const configured = !!S.cfg.firebase?.apiKey;
-  // Not configured yet + opened on this PC/network: use the local Firebase emulators (for testing).
-  const emulate = !configured && isLocalHost(host);
+  // The local test server (npm run web:local, port 5555) always uses the Firebase emulators, never the live project.
+  const emulate = isLocalHost(host) && (location.port === '5555' || !configured);
   if (!configured && !emulate) {
     $('boot').textContent = 'This website is not set up yet: add the Firebase settings to config.json and deploy again.';
     return;

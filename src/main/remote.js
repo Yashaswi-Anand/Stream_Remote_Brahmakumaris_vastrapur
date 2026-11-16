@@ -55,7 +55,9 @@ async function loadSiteConfig(base, fetchImpl) {
   const json = await res.json().catch(() => null);
   const fb = json && json.firebase;
   if (!fb) throw new Error(`${base} is not a Stream Remote website.`);
-  if (fb.apiKey) {
+  const local = new URL(base);
+  const emulated = LOCAL_HOST_RE.test(local.hostname) && local.port === '5555'; // npm run web:local
+  if (fb.apiKey && !emulated) {
     if (typeof fb.projectId !== 'string' || !/^https:\/\/[\w.-]+\.(firebaseio\.com|firebasedatabase\.app)\/?$/.test(fb.databaseURL || '')) {
       throw new Error('The website has incomplete Firebase settings (databaseURL / projectId).');
     }

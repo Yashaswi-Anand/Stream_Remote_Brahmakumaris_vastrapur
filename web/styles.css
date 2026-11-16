@@ -188,3 +188,20 @@ input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 1
 .dl-table td:last-child { text-align: right; }
 .dl-table a.btn { text-decoration: none; white-space: nowrap; }
 .block { display: block; }
+
+/* Keep every card within the screen width (a wide child must never widen the page). */
+.dash > * { min-width: 0; }
+.card { overflow-wrap: anywhere; }
+
+/* Phones: the download table becomes one block per file. */
+@media (max-width: 560px) {
+  .dl-table thead { display: none; }
+  .dl-table, .dl-table tbody { display: block; width: 100%; }
+  .dl-table tr { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 2px 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .dl-table td { display: block; padding: 0; border: 0; }
+  .dl-table td:first-child { grid-column: 1 / -1; }
+  .dl-table td:nth-child(2), .dl-table td:nth-child(3) { color: var(--muted); font-size: 0.85rem; }
+  .dl-table td:nth-child(3)::before { content: "· "; }
+  .dl-table td:last-child { grid-column: 1 / -1; text-align: left; margin-top: 8px; }
+  .dl-table td:last-child a.btn { display: block; width: 100%; text-align: center; min-height: 44px; line-height: 30px; }
+}
