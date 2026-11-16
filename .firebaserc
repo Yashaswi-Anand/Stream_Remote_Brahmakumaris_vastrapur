@@ -1,5 +1,27 @@
 {
   "projects": {
     "default": "stream-remote-bk"
+  },
+  "targets": {
+    "stream-remote-bk": {
+      "hosting": {
+        "main": [
+          "stream-remote-bkvastrapur"
+        ],
+        "old": [
+          "stream-remote-bk"
+        ]
+      }
+    },
+    "demo-stream-remote": {
+      "hosting": {
+        "main": [
+          "demo-stream-remote"
+        ],
+        "old": [
+          "demo-stream-remote-old"
+        ]
+      }
+    }
   }
 }

@@ -14,7 +14,7 @@ const root = path.join(__dirname, '..');
 const SETUP_CODE = process.env.LOCAL_SETUP_CODE || 'LOCAL-SETUP-CODE';
 require('./build-rules');
 
-const child = spawn('npx', ['--yes', 'firebase-tools@15.34.2', 'emulators:start', '--only', 'auth,database,hosting', '--project', 'demo-stream-remote'], {
+const child = spawn('npx', ['--yes', 'firebase-tools@15.34.2', 'emulators:start', '--only', 'auth,database,hosting:main', '--project', 'demo-stream-remote'], {
   cwd: root,
   stdio: ['inherit', 'pipe', 'inherit'],
   shell: true,

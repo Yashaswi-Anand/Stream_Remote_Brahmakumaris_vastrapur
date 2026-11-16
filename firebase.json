@@ -1,35 +1,91 @@
 {
-  "hosting": {
-    "public": "web",
-    "ignore": ["**/.*"],
-    "cleanUrls": false,
-    "rewrites": [{ "source": "**", "destination": "/index.html" }],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          {
-            "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.firebasedatabase.app; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.github.com; img-src 'self' data: blob:; style-src 'self'; frame-src https://*.firebaseio.com https://*.firebasedatabase.app; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
-          },
-          { "key": "X-Frame-Options", "value": "DENY" },
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "Referrer-Policy", "value": "no-referrer" },
-          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
-        ]
-      },
-      {
-        "source": "**",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-      }
-    ]
+  "hosting": [
+    {
+      "target": "main",
+      "public": "web",
+      "ignore": [
+        "**/.*"
+      ],
+      "cleanUrls": false,
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'self'; script-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.firebasedatabase.app; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.github.com; img-src 'self' data: blob:; style-src 'self'; frame-src https://*.firebaseio.com https://*.firebasedatabase.app; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "no-referrer"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(), microphone=(), geolocation=()"
+            }
+          ]
+        },
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "old",
+      "public": "firebase/old-site",
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "https://stream-remote-bkvastrapur.web.app/",
+          "type": 301
+        },
+        {
+          "source": "/:path*",
+          "destination": "https://stream-remote-bkvastrapur.web.app/:path*",
+          "type": 301
+        }
+      ]
+    }
+  ],
+  "database": {
+    "rules": "database.rules.json"
   },
-  "database": { "rules": "database.rules.json" },
   "emulators": {
-    "auth": { "host": "0.0.0.0", "port": 9099 },
-    "database": { "host": "0.0.0.0", "port": 9000 },
-    "hosting": { "host": "0.0.0.0", "port": 5555 },
-    "ui": { "enabled": false },
+    "auth": {
+      "host": "0.0.0.0",
+      "port": 9099
+    },
+    "database": {
+      "host": "0.0.0.0",
+      "port": 9000
+    },
+    "hosting": {
+      "host": "0.0.0.0",
+      "port": 5555
+    },
+    "ui": {
+      "enabled": false
+    },
     "singleProjectMode": true
   }
 }
