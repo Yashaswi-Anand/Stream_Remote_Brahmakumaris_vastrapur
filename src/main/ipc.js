@@ -9,7 +9,7 @@ const { hibernate, biosCapability, describeBios, systemPowerInfo, restartToFirmw
 const { WAKE_TEST_ARG, WAKE_TEST_TASK, registerWakeTest, deleteTask } = require('../services/scheduler/windowsTask');
 const { MODES, BIOS_REPEATS } = require('../services/config/schema');
 const { pickRandom, listImages } = require('../services/images/imageService');
-const { compareVersions, fetchManifest, isHttpsUrl } = require('../services/updates/updateService');
+const { compareVersions, fetchManifest, isHttpsUrl, isReleaseAsset, DEFAULT_UPDATE_SOURCE } = require('../services/updates/updateService');
 
 const isBool = (v) => typeof v === 'boolean';
 const isInt = (min, max) => (v) => Number.isInteger(v) && v >= min && v <= max;
@@ -220,30 +220,92 @@ function registerIpc({ ctx, actions, remote, buildState, pushState, refreshImage
   });
 
   // ---- Updates & uninstall -----------------------------------------------------------------
-  handle('updates:check', async () => {
-    const url = store.get().updates.releaseManifestUrl;
-    if (!url) throw new Error('No update source is configured. Add a release manifest URL first.');
-    ctx.updateStatus = { checking: true, error: '', checkedThisSession: ctx.updateStatus.checkedThisSession };
+  /** Checks the update source (GitHub Releases unless another one is set). `quiet`: no error thrown. */
+  ctx.checkUpdates = async ({ quiet = false } = {}) => {
+    const url = store.get().updates.releaseManifestUrl || DEFAULT_UPDATE_SOURCE;
+    ctx.updateStatus = { ...ctx.updateStatus, checking: true, error: '' };
     pushState();
     try {
-      const manifest = await fetchManifest(url, (u, o) => net.fetch(u, o));
+      const portable = !!process.env.PORTABLE_EXECUTABLE_FILE;
+      const manifest = await fetchManifest(url, (u, o) => net.fetch(u, o), 10000, { portable });
       store.update((c) => {
         Object.assign(c.updates, { latestVersion: manifest.version, releaseNotes: manifest.releaseNotes, downloadUrl: manifest.downloadUrl, lastCheckedAt: new Date().toISOString() });
       });
       const newer = compareVersions(manifest.version, app.getVersion()) > 0;
-      ctx.updateStatus = { checking: false, error: '', checkedThisSession: true };
-      logger.info('updates', newer ? `Version ${manifest.version} is available.` : `Up to date (latest is ${manifest.version}).`);
+      ctx.updateStatus = { ...ctx.updateStatus, checking: false, error: '', checkedThisSession: true, downloadSize: manifest.downloadSize || 0 };
+      if (!quiet || newer) logger.info('updates', newer ? `Version ${manifest.version} is available.` : `Up to date (latest is ${manifest.version}).`);
+      pushState();
       return { ok: true, newer };
     } catch (err) {
-      ctx.updateStatus = { checking: false, error: err.message, checkedThisSession: true };
-      logger.warn('updates', `Update check failed: ${err.message}`);
+      ctx.updateStatus = { ...ctx.updateStatus, checking: false, error: err.message, checkedThisSession: true };
+      if (!quiet) logger.warn('updates', `Update check failed: ${err.message}`);
+      pushState();
+      if (quiet) return { ok: false, error: err.message };
       throw err;
     }
-  });
+  };
+  handle('updates:check', async () => ctx.checkUpdates());
   handle('updates:openDownload', async () => {
     const url = store.get().updates.downloadUrl;
     if (!isHttpsUrl(url)) throw new Error('No download link is available.');
     await shell.openExternal(url);
+  });
+
+  /**
+   * Upgrades the installed app: downloads the newer Setup exe from this app's GitHub releases, checks it,
+   * starts the installer (which keeps settings and the schedule) and closes the app so files can be replaced.
+   */
+  handle('updates:install', async () => {
+    const u = store.get().updates;
+    if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_FILE) throw new Error('Only the installed version can upgrade itself. For the portable version, download the new exe instead.');
+    if (!u.latestVersion || compareVersions(u.latestVersion, app.getVersion()) <= 0) throw new Error('No newer version is available.');
+    if (!isReleaseAsset(u.downloadUrl) || !/Setup-\d+\.\d+\.\d+\.exe$/.test(u.downloadUrl) || !u.downloadUrl.includes(`-${u.latestVersion}.exe`)) {
+      throw new Error('The download link is not an installer of this app. Check for updates again.');
+    }
+    if (ctx.workflow.state.busy || ctx.workflow.state.stream.live) throw new Error('Wait until the stream and any automation have finished, then upgrade.');
+    const name = decodeURIComponent(u.downloadUrl.split('/').pop());
+    const file = path.join(app.getPath('temp'), name);
+    const progress = (received, total) => {
+      ctx.updateStatus = { ...ctx.updateStatus, installing: true, error: '', received, total };
+      pushState();
+    };
+    progress(0, ctx.updateStatus.downloadSize || 0);
+    logger.info('updates', `Downloading version ${u.latestVersion}…`);
+    try {
+      const res = await net.fetch(u.downloadUrl);
+      if (!res.ok || !res.body) throw new Error(`The download failed (HTTP ${res.status}).`);
+      const total = Number(res.headers.get('content-length')) || ctx.updateStatus.downloadSize || 0;
+      const out = fs.createWriteStream(file);
+      let received = 0;
+      let last = 0;
+      for await (const chunk of res.body) {
+        received += chunk.length;
+        if (!out.write(Buffer.from(chunk))) await new Promise((r) => out.once('drain', r));
+        if (Date.now() - last > 500) {
+          last = Date.now();
+          progress(received, total);
+        }
+      }
+      await new Promise((resolve, reject) => out.end((err) => (err ? reject(err) : resolve())));
+      if (received < 1024 * 1024 || (total && received !== total)) throw new Error('The download was incomplete. Try again.');
+      const head = Buffer.alloc(2);
+      const fd = fs.openSync(file, 'r');
+      fs.readSync(fd, head, 0, 2, 0);
+      fs.closeSync(fd);
+      if (head.toString('latin1') !== 'MZ') throw new Error('The downloaded file is not a Windows installer.');
+    } catch (err) {
+      fs.rmSync(file, { force: true });
+      ctx.updateStatus = { ...ctx.updateStatus, installing: false, error: err.message };
+      logger.warn('updates', `Upgrade failed: ${err.message}`);
+      pushState();
+      throw err;
+    }
+    logger.info('updates', `Starting the installer for version ${u.latestVersion}. The app closes now and the installer keeps your settings.`);
+    store.saveNow();
+    const child = spawn(file, [], { detached: true, stdio: 'ignore' });
+    child.unref();
+    setTimeout(() => app.quit(), 800);
+    return { ok: true };
   });
 
   handle('app:uninstall', async (opts) => {

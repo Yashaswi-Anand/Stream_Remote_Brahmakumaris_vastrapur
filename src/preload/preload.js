@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('zsa', {
   respondSchedule: invoke('schedule:respond'),
   checkUpdates: invoke('updates:check'),
   openDownload: invoke('updates:openDownload'),
+  installUpdate: invoke('updates:install'),
   uninstall: invoke('app:uninstall'),
   cleanup: invoke('app:cleanup'),
   remotePair: invoke('remote:pair'),

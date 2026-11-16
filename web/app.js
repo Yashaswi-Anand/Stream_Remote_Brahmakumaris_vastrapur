@@ -641,16 +641,17 @@ document.addEventListener('visibilitychange', () => {
 // ---- Download page ---------------------------------------------------------------------------
 
 const KIND_TEXT = {
-  setup: ['Download installer', 'Recommended. Installs the app and adds it to the Start menu; updates keep your settings.'],
-  portable: ['Download portable', 'Runs without installing (for example from a USB drive).'],
+  setup: ['Installer (recommended)', 'Installs, or upgrades the installed version.'],
+  portable: ['Portable', 'Runs without installing.'],
 };
 const INSTALLER_RE = /^Zoom-Stream-Automation-(Setup|Portable)-(\d+\.\d+\.\d+)\.exe$/;
 const sizeText = (bytes) => `${(bytes / 1048576).toFixed(0)} MB`;
 
 async function loadDownloads() {
-  $('dl-files').replaceChildren();
+  $('dl-rows').replaceChildren();
   $('dl-version').textContent = '…';
   $('dl-empty').hidden = true;
+  $('dl-published').textContent = '';
   const repo = S.cfg.githubRepo;
   try {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo || '')) throw new Error('No GitHub repository is set in config.json.');
@@ -665,21 +666,24 @@ async function loadDownloads() {
     const files = (rel.assets || [])
       .map((a) => ({ a, m: a.name.match(INSTALLER_RE) }))
       .filter((x) => x.m && /^https:\/\/github\.com\//.test(x.a.browser_download_url))
-      .map(({ a, m }) => ({ kind: m[1].toLowerCase(), version: m[2], name: a.name, size: a.size, url: a.browser_download_url, at: a.updated_at }))
+      .map(({ a, m }) => ({ kind: m[1].toLowerCase(), version: m[2], name: a.name, size: a.size, url: a.browser_download_url }))
       .sort((x, y) => (x.kind === 'setup' ? -1 : 1) - (y.kind === 'setup' ? -1 : 1));
-    $('dl-version').textContent = files[0] ? `Version ${files[0].version}` : rel.tag_name || '—';
+    $('dl-version').textContent = files[0] ? `Latest: v${files[0].version}` : rel.tag_name || '—';
     $('dl-empty').hidden = files.length > 0;
-    $('dl-files').replaceChildren(
+    $('dl-rows').replaceChildren(
       ...files.map((f) => {
         const [label, note] = KIND_TEXT[f.kind] || ['Download', ''];
         return el(
-          'div',
-          { class: 'dl-item' },
-          el('a', { class: `btn block${f.kind === 'setup' ? ' primary' : ''}`, href: f.url, rel: 'noopener' }, `${label} (${sizeText(f.size)})`),
-          el('span', { class: 'muted small' }, `${note} ${f.name}, published ${timeText(f.at)}.`),
+          'tr',
+          {},
+          el('td', {}, el('strong', {}, label), el('span', { class: 'muted small block' }, note)),
+          el('td', {}, `v${f.version}`),
+          el('td', {}, sizeText(f.size)),
+          el('td', {}, el('a', { class: `btn small${f.kind === 'setup' ? ' primary' : ''}`, href: f.url, rel: 'noopener' }, 'Download')),
         );
       }),
     );
+    if (rel.published_at) $('dl-published').textContent = `Published ${timeText(rel.published_at)} on GitHub.`;
   } catch (err) {
     $('dl-version').textContent = '—';
     toast(niceError(err), '', 'error');

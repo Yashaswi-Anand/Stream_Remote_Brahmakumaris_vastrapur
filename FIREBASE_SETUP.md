@@ -78,8 +78,8 @@ This uploads the website (`web/`) and the database rules. Run `npm run deploy` a
 
 ## 7. Offer the installers on the Download page
 On GitHub, open the repository → **Releases → Draft a new release**:
-1. Tag `v2.1.0`, title `2.1.0`.
-2. Attach `dist/Zoom-Stream-Automation-Setup-2.1.0.exe` and `dist/Zoom-Stream-Automation-Portable-2.1.0.exe`.
+1. Tag `v2.2.0`, title `2.2.0`.
+2. Attach `dist/Zoom-Stream-Automation-Setup-2.2.0.exe` and `dist/Zoom-Stream-Automation-Portable-2.2.0.exe`.
 3. **Publish**. The website's **Download** page always shows the newest release.
 
 ## This project's addresses

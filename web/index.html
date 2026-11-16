@@ -176,17 +176,31 @@
 
   <main class="view dash" data-view="download" hidden>
     <section class="card">
-      <div class="card-head"><h2>Desktop app</h2><span class="pill" id="dl-version"></span></div>
+      <div class="card-head"><h2>Download the desktop app</h2><span class="pill" id="dl-version"></span></div>
       <p class="muted">Zoom Stream Automation for the Windows 10/11 PC that runs Zoom. Download it on that PC.</p>
-      <div class="stack" id="dl-files"></div>
+      <div class="table-wrap">
+        <table class="dl-table">
+          <thead><tr><th>File</th><th>Version</th><th>Size</th><th></th></tr></thead>
+          <tbody id="dl-rows"></tbody>
+        </table>
+      </div>
       <p class="muted small" id="dl-empty" hidden>No release has been published yet. The owner publishes the installers as a GitHub release.</p>
+      <p class="muted small" id="dl-published"></p>
     </section>
     <section class="card">
-      <div class="card-head"><h2>After installing</h2></div>
+      <div class="card-head"><h2>Already installed? Upgrade</h2></div>
       <ol class="steps-list">
-        <li>Open the app. Your settings and schedule from an older version are kept.</li>
-        <li>To control it from here, the owner opens <strong>Admin → Add a PC</strong> and types the code in the app's <strong>Remote</strong> tab.</li>
-        <li>If Windows shows "Windows protected your PC", click <strong>More info → Run anyway</strong> (the installer is not code-signed).</li>
+        <li><strong>Easiest:</strong> in the app open the <strong>Update</strong> tab → <strong>Download &amp; install</strong> (version 2.2.0 and later; it also checks for new versions by itself).</li>
+        <li><strong>Or:</strong> download the <strong>Installer</strong> above and run it on the PC. It upgrades the installed version in place.</li>
+        <li>Your settings, meeting ID, image folder, schedule and the pairing with this website are kept.</li>
+        <li>Portable version: download the new portable exe and use it instead of the old one.</li>
+      </ol>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>First install</h2></div>
+      <ol class="steps-list">
+        <li>Run the <strong>Installer</strong>. If Windows shows "Windows protected your PC", click <strong>More info → Run anyway</strong> (the installer is not code-signed).</li>
+        <li>To control the PC from here, the owner opens <strong>Admin → Add a PC</strong> and types the code in the app's <strong>Remote</strong> tab.</li>
       </ol>
     </section>
   </main>

@@ -49,7 +49,7 @@ const ctx = {
   remote: null,
   zoomStatus: { installed: false, running: false, inMeeting: false, sharingDetected: false, status: 'unknown' },
   images: { folder: '', count: 0, skipped: 0, error: null },
-  updateStatus: { checking: false, error: '', checkedThisSession: false },
+  updateStatus: { checking: false, error: '', checkedThisSession: false, installing: false, received: 0, total: 0, downloadSize: 0 },
   pushTimer: null,
 };
 
@@ -149,7 +149,9 @@ function buildState() {
       releaseNotes: c.updates.releaseNotes,
       downloadUrl: c.updates.downloadUrl,
       lastCheckedAt: c.updates.lastCheckedAt,
-      manifestConfigured: !!c.updates.releaseManifestUrl,
+      manifestConfigured: true,
+      customSource: !!c.updates.releaseManifestUrl,
+      canInstall: app.isPackaged && !isPortable(),
       ...ctx.updateStatus,
     },
     power: { wakeTest: c.app.wakeTest, biosPowerOn: c.app.biosPowerOn },
@@ -382,6 +384,9 @@ async function init() {
 
   ctx.scheduler.start();
   ctx.remote.start();
+  // Look for a newer version shortly after start and twice a day (quietly; the Update tab shows the result).
+  setTimeout(() => ctx.checkUpdates?.({ quiet: true }), 30000);
+  setInterval(() => ctx.checkUpdates?.({ quiet: true }), 12 * 3600000);
   if (!process.argv.includes(WAKE_TEST_ARG)) expireWakeTest();
   handleArgs(process.argv, 'Windows Task Scheduler');
 

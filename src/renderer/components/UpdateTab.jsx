@@ -11,8 +11,9 @@ export default function UpdateTab({ state, act, pending }) {
 
   const newer = u.latestVersion && isNewer(u.latestVersion, u.currentVersion);
   let status;
-  if (!u.manifestConfigured) status = <Badge>Update source not configured</Badge>;
+  if (u.installing) status = <Badge tone="info" pulse>Downloading…</Badge>;
   else if (u.checking) status = <Badge tone="info" pulse>Checking…</Badge>;
+  else if (u.error && /No release has been published/.test(u.error)) status = <Badge>No release yet</Badge>;
   else if (u.error) status = <Badge tone="danger">Check failed</Badge>;
   else if (!u.latestVersion) status = <Badge>Not checked yet</Badge>;
   else if (newer) status = <Badge tone="warning">Update available</Badge>;
@@ -42,8 +43,13 @@ export default function UpdateTab({ state, act, pending }) {
             </div>
           </div>
 
-          {!u.manifestConfigured && <p className="muted">Update checking is unavailable until a release manifest URL is set below. Your installed version is shown above.</p>}
+          <p className="muted small">The app checks the Stream Remote GitHub releases for a newer version automatically (at start and twice a day).</p>
           {u.error && <div className="banner banner-danger">{u.error}</div>}
+          {u.installing && (
+            <div className="banner banner-info">
+              Downloading v{u.latestVersion}… {u.total ? `${Math.floor((u.received / u.total) * 100)}% of ${Math.round(u.total / 1048576)} MB` : `${Math.round(u.received / 1048576)} MB`}. The installer opens when the download is complete and the app closes.
+            </div>
+          )}
           {newer && u.releaseNotes && (
             <div className="release-notes">
               <h4>What's new in v{u.latestVersion}</h4>
@@ -51,20 +57,32 @@ export default function UpdateTab({ state, act, pending }) {
             </div>
           )}
 
-          <label className="field">
-            <span>Release manifest URL</span>
-            <input type="url" value={url} placeholder="https://example.com/zoom-stream-automation/latest.json" onChange={(e) => setUrl(e.target.value)} onBlur={() => url !== settings.releaseManifestUrl && act('updateSettings', { releaseManifestUrl: url.trim() })} />
-            <small className="muted">
-              HTTPS JSON with <code>version</code>, <code>releaseNotes</code> and <code>downloadUrl</code>.
-            </small>
-          </label>
-
           <div className="button-row">
-            <Button variant="primary" disabled={!u.manifestConfigured} busy={pending.checkUpdates || u.checking} onClick={() => act('checkUpdates')}>
+            {newer && u.downloadUrl && u.canInstall && (
+              <Button variant="primary" busy={pending.installUpdate || u.installing} disabled={u.installing} onClick={() => setConfirm('install')}>
+                Download &amp; install v{u.latestVersion}
+              </Button>
+            )}
+            {newer && u.downloadUrl && !u.canInstall && (
+              <Button variant="primary" onClick={() => act('openDownload')}>
+                Download v{u.latestVersion}
+              </Button>
+            )}
+            <Button variant={newer ? 'default' : 'primary'} disabled={u.installing} busy={pending.checkUpdates || u.checking} onClick={() => act('checkUpdates')}>
               Check for Updates
             </Button>
-            {newer && u.downloadUrl && <Button onClick={() => act('openDownload')}>Download v{u.latestVersion}</Button>}
           </div>
+
+          <details className="advanced">
+            <summary className="muted small">Advanced: other update source</summary>
+            <label className="field">
+              <span>Release manifest URL (optional)</span>
+              <input type="url" value={url} placeholder="Default: GitHub releases of Stream Remote" onChange={(e) => setUrl(e.target.value)} onBlur={() => url !== settings.releaseManifestUrl && act('updateSettings', { releaseManifestUrl: url.trim() })} />
+              <small className="muted">
+                Leave empty to use GitHub. Otherwise an HTTPS JSON with <code>version</code>, <code>releaseNotes</code> and <code>downloadUrl</code>.
+              </small>
+            </label>
+          </details>
         </Card>
 
         <Card title="Uninstall" className="span-2">
@@ -121,6 +139,18 @@ export default function UpdateTab({ state, act, pending }) {
           onConfirm={() => {
             setConfirm(null);
             act('cleanup');
+          }}
+        />
+      )}
+      {confirm === 'install' && (
+        <ConfirmDialog
+          title={`Install v${u.latestVersion}?`}
+          confirmLabel="Download & install"
+          message={`Downloads the installer${u.downloadSize ? ` (${Math.round(u.downloadSize / 1048576)} MB)` : ''} from GitHub. When it is ready, the app closes and the installer opens: click through it to upgrade. Your settings, meeting ID, images and schedule are kept.`}
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => {
+            setConfirm(null);
+            act('installUpdate');
           }}
         />
       )}

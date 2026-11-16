@@ -179,3 +179,12 @@ input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 1
 .dl-item { display: grid; gap: 6px; }
 .dl-item a.btn { text-decoration: none; text-align: center; }
 .steps-list { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+
+/* Download table */
+.table-wrap { overflow-x: auto; margin-top: 10px; }
+.dl-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.dl-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.dl-table td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.dl-table td:last-child { text-align: right; }
+.dl-table a.btn { text-decoration: none; white-space: nowrap; }
+.block { display: block; }
