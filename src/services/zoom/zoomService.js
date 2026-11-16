@@ -316,7 +316,7 @@ class ZoomService {
    * Opens the toolbar's "More" menu and clicks the first item matching `itemPatterns`.
    * `viaPatterns` names an intermediate item (e.g. a "Live stream" tile) that opens a submenu.
    */
-  async clickMoreMenuItem(meeting, itemPatterns, viaPatterns = null) {
+  async clickMoreMenuItem(meeting, itemPatterns, viaPatterns = null, { viaIsAction = false } = {}) {
     const L = this.labels;
     const before = (await this.getWindows()) || [];
     const more = await this.clickToolbar(meeting, L.moreButton);
@@ -340,6 +340,10 @@ class ZoomService {
         if (sub) {
           item = await this.clickText({ hwnd: sub.hwnd, patterns: itemPatterns, timeoutMs: 1500 });
           if (!item.clicked) await this.uia.call('close', { hwnd: sub.hwnd }).catch(() => {});
+        } else if (viaIsAction) {
+          // Newer Zoom: with one live-stream service set up, the "Livestream" tile starts it directly (no submenu).
+          this.logger.info('zoom', `"${via.text}" started the live stream directly (no submenu).`);
+          return { ...via, clicked: true, direct: true };
         }
       }
     }
@@ -360,7 +364,7 @@ class ZoomService {
   }
 
   async startYouTubeLive(meeting) {
-    const item = await this.clickMoreMenuItem(meeting, this.labels.liveOnYouTube, this.labels.liveStreamMenu);
+    const item = await this.clickMoreMenuItem(meeting, this.labels.liveOnYouTube, this.labels.liveStreamMenu, { viaIsAction: true });
     if (!item.clicked) {
       throw new AutomationError(
         '"Live on YouTube" is not in Zoom\'s More menu.',

@@ -20,7 +20,7 @@ const DEFAULT_LABELS = {
   liveOnYouTube: ['^Live on YouTube$', '^YouTube$'],
   liveStreamMenu: ['^Live stream(ing)?$', '^Live on$', '^Live$', '^Livestream$'],
   liveIndicator: ['^LIVE$', '^Live$'],
-  stopLiveStream: ['^Stop Live Stream$', '^Stop live stream$', '^Stop Live$', '^End Live Stream$'],
+  stopLiveStream: ['^Stop Live Stream$', '^Stop live stream$', '^Stop [Ll]ivestream$', '^Stop Live$', '^End Live Stream$', '^End [Ll]ivestream$'],
 
   shareButton: ['^Share$', '^Share Screen$'],
   screenTile: ['^Screen( \\d+)?$', '^Desktop( \\d+)?$', '^Entire screen$'],

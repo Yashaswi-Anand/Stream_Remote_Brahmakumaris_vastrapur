@@ -12,7 +12,7 @@ Everything runs locally on the stream PC. Settings live in one JSON file. Versio
 
 | File | Use it when |
 | --- | --- |
-| `dist/Zoom-Stream-Automation-Setup-2.5.1.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
+| `dist/Zoom-Stream-Automation-Setup-2.5.2.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
 
 Copy either file to another Windows 10/11 (64-bit) PC and run it. No source code, Node.js or other runtime is needed.
 The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC". Click **More info → Run anyway**.
@@ -65,7 +65,7 @@ Sets up the PC to **switch itself on from Shut down** at the stream time, using 
 - Shows the installed version and, once a **release manifest URL** is set, the latest version and its release notes. Without a URL, it says update checking is unavailable.
 - Manifest format (served over HTTPS):
   ```json
-  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.5.1.exe", "publishedAt": "2026-11-01" }
+  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.5.2.exe", "publishedAt": "2026-11-01" }
   ```
 - **Uninstall** opens the Windows uninstaller after you confirm. Nothing is removed until you confirm in the uninstaller. Tick *Also delete my settings…* to remove the settings folder as well. The uninstaller always removes the app's scheduled task and Windows sign-in entry; upgrades keep them. The portable build has no uninstaller: use **Remove schedule & startup entry**, then delete the exe.
 

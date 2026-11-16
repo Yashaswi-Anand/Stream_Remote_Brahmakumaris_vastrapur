@@ -124,3 +124,37 @@ test("YouTube Studio: opens Manage, selects only today's stream and clicks Go li
     global.setTimeout = realSetTimeout;
   }
 });
+
+test("Zoom's new More menu: the Livestream tile that starts YouTube directly counts as started", async () => {
+  const { ZoomService } = require('../src/services/zoom/zoomService');
+  const make = (menuHasSub) => {
+    const z = Object.create(ZoomService.prototype);
+    z.logger = { info() {}, warn() {} };
+    Object.defineProperty(z, 'labels', {
+      value: { moreButton: ['^More$'], liveOnYouTube: ['^Live on YouTube$'], liveStreamMenu: ['^Livestream$'], stopLiveStream: ['^Stop [Ll]ivestream$'] },
+    });
+    let windows = [{ hwnd: 1 }];
+    z.getWindows = async () => windows;
+    z.clickToolbar = async () => ({ clicked: true });
+    z.waitNewWindow = async () => {
+      if (windows.length === 1) {
+        windows = [...windows, { hwnd: 2 }]; // the More menu opens
+        return { hwnd: 2 };
+      }
+      return menuHasSub ? { hwnd: 3 } : null; // after "Livestream": a submenu, or (new Zoom) nothing
+    };
+    z.uia = { call: async () => ({}) };
+    z.clickText = async ({ hwnd, patterns }) => {
+      const text = hwnd === 2 ? 'Livestream' : hwnd === 3 ? 'Live on YouTube' : '';
+      return patterns.some((p) => new RegExp(p).test(text)) ? { clicked: true, text } : { clicked: false, seen: [text] };
+    };
+    return z;
+  };
+  const direct = await make(false).startYouTubeLive({ hwnd: 1 });
+  assert.equal(direct.clicked, true);
+  assert.equal(direct.direct, true);
+  const viaSub = await make(true).startYouTubeLive({ hwnd: 1 });
+  assert.equal(viaSub.text, 'Live on YouTube');
+  // Stopping never treats a bare "Livestream" click as done.
+  assert.equal(await make(false).stopYouTubeLive({ hwnd: 1 }), false);
+});
