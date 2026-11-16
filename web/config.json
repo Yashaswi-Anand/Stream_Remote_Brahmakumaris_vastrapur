@@ -1,10 +1,10 @@
 {
   "firebase": {
-    "apiKey": "",
-    "authDomain": "",
-    "databaseURL": "",
-    "projectId": "",
-    "appId": ""
+    "apiKey": "AIzaSyDfraXZY3rJGHqXBIjCU0I6-4JxXl3T0lE",
+    "authDomain": "stream-remote-bk.firebaseapp.com",
+    "databaseURL": "https://stream-remote-bk-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "projectId": "stream-remote-bk",
+    "appId": "1:701680613773:web:a268008aafc0e7e00b25c4"
   },
   "githubRepo": "Yashaswi-Anand/Stream_Remote_Brahmakumaris_vastrapur"
 }
