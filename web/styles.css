@@ -143,10 +143,14 @@ input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 1
 .steps .skipped { opacity: 0.55; }
 .steps .detail { display: block; color: var(--muted); font-size: 0.82rem; }
 
-.preview { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--bg); border: 1px solid var(--line); display: grid; place-items: center; margin-top: 6px; }
-.preview img { width: 100%; height: 100%; object-fit: contain; }
+/* Selected image: always fully visible inside a fixed 16:9 box (letterboxed), whatever its size or shape. */
+.preview { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 50vh; border-radius: 10px; overflow: hidden; background: #000; border: 1px solid var(--line); display: grid; place-items: center; margin-top: 6px; }
+.preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.preview span { padding: 0 12px; text-align: center; }
+#image-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 6px 0 0; }
+select { text-overflow: ellipsis; }
 .screen { border-radius: 10px; overflow: hidden; background: #000; border: 1px solid var(--line); margin: 6px 0; }
-.screen img { width: 100%; display: block; min-height: 120px; }
+.screen img { width: 100%; height: auto; max-height: 70vh; object-fit: contain; display: block; min-height: 120px; }
 
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text); font-size: 0.95rem; margin: 6px 0; }
 .switch { appearance: none; width: 50px; height: 30px; min-height: 0; padding: 0; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; flex: none; border: 0; }

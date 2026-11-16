@@ -516,6 +516,7 @@ function render() {
   const imgs = st?.images;
   $('image-count').textContent = imgs ? `${imgs.count} image(s)` : '';
   $('image-name').textContent = imgs?.selectedName || '';
+  $('image-name').title = imgs?.selectedName || '';
   const sel = $('image-select');
   const names = imgs?.names || [];
   if (sel.dataset.sig !== names.join('|')) {
