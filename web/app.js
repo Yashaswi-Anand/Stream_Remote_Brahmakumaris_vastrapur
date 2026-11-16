@@ -86,8 +86,19 @@ const PAIR_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const LABELS = {
   startStream: 'Start Stream', endStream: 'End Stream', cancel: 'Cancel', confirmLive: "I'm live", openZoom: 'Open Zoom meeting',
   shareImage: 'Share Image', shareScreen: 'Share Screen', stopShare: 'Stop Share', nextImage: 'Random image',
-  dismissError: 'Dismiss error', selectImage: 'Choose image', setSchedule: 'Save schedule',
+  dismissError: 'Dismiss error', selectImage: 'Choose image', setSchedule: 'Save schedule', setStartSteps: 'Start Stream steps',
+  playMusic: 'Play music', stopMusic: 'Stop music', nextSong: 'Random song', selectSong: 'Choose song', setMusicSource: 'Music source',
+  setMusicYoutube: 'YouTube music link',
 };
+
+/** The Start Stream checklist (the PC's settings; all ticked by default). */
+const START_STEPS = [
+  ['openZoom', 'Open Zoom and the meeting'],
+  ['youtube', 'Go live on YouTube'],
+  ['shareImage', 'Share the image (with sound)'],
+  ['annotation', 'Disable annotation for others'],
+  ['music', 'Play music'],
+];
 
 // ---- Helpers ---------------------------------------------------------------------------------
 
@@ -505,6 +516,9 @@ function render() {
   $('error-hint').textContent = err?.hint || '';
   $('btn-dismiss').hidden = busy;
 
+  renderStartSteps(st, busy);
+  renderMusic(st, busy);
+
   // Share
   const shareType = wf?.share?.type;
   setPill($('share-pill'), !st ? '—' : shareType === 'image' ? 'Image' : shareType === 'screen' ? 'Screen' : sharing ? 'Sharing' : 'Not sharing', sharing ? 'ok' : '');
@@ -558,6 +572,60 @@ function render() {
   );
 }
 
+function renderStartSteps(st, busy) {
+  const steps = st?.startSteps;
+  const box = $('start-steps');
+  box.hidden = !steps;
+  if (!steps) return;
+  const sig = JSON.stringify([steps, busy]);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.replaceChildren(
+    el('p', { class: 'checklist-title' }, 'Start Stream will:'),
+    ...START_STEPS.map(([key, label]) => {
+      const blocked = key === 'annotation' && !steps.shareImage;
+      const on = !!steps[key] && !blocked;
+      const input = el('input', { type: 'checkbox' });
+      input.checked = on;
+      input.disabled = busy || blocked;
+      input.addEventListener('change', async () => {
+        input.disabled = true;
+        const ok = await command('setStartSteps', { [key]: input.checked });
+        if (!ok) input.checked = !input.checked;
+        input.disabled = false;
+      });
+      return el('label', { class: `check-row${on ? '' : ' off'}${blocked ? ' disabled' : ''}` }, input, el('span', {}, label));
+    }),
+  );
+}
+
+function renderMusic(st, busy) {
+  const m = st?.music;
+  const yt = m?.source === 'youtube';
+  $('music-src-folder').className = !yt ? 'active' : '';
+  $('music-src-youtube').className = yt ? 'active' : '';
+  $('music-src-folder').disabled = $('music-src-youtube').disabled = !m;
+  $('music-folder-box').hidden = yt;
+  $('music-youtube-box').hidden = !yt;
+  setPill($('music-pill'), !m ? '—' : m.playing ? 'Playing' : 'Stopped', m?.playing ? 'ok' : '');
+  $('music-count').textContent = !m ? '' : m.count ? `${m.count} song(s) in the PC's music folder.` : m.error || 'No music folder is chosen in the desktop app.';
+  const sel = $('music-select');
+  const names = m?.names || [];
+  if (sel.dataset.sig !== names.join('|')) {
+    sel.dataset.sig = names.join('|');
+    sel.replaceChildren(el('option', { value: '' }, names.length ? 'Choose a song…' : 'No songs'), ...names.map((n) => el('option', { value: n }, n)));
+  }
+  sel.value = m?.selectedName && names.includes(m.selectedName) ? m.selectedName : '';
+  sel.disabled = !m || !names.length;
+  $('btn-next-song').disabled = !m || names.length < 2;
+  if (document.activeElement !== $('music-url') && !S.musicUrlDirty) $('music-url').value = m?.youtubeUrl || '';
+  $('btn-save-music-url').hidden = !S.musicUrlDirty;
+  $('music-now').hidden = !(m?.playing && m.title);
+  $('music-now').textContent = m?.title ? `♪ ${m.title}` : '';
+  $('btn-play-music').disabled = !m || (yt ? !m.youtubeUrl : !m.count);
+  $('btn-stop-music').disabled = !m?.playing;
+}
+
 function renderPreview() {
   const p = S.preview;
   const selected = S.state?.images?.selectedName;
@@ -581,6 +649,26 @@ $('btn-stop-share').onclick = (e) => command('stopShare', null, e.currentTarget)
 $('btn-next-image').onclick = (e) => command('nextImage', null, e.currentTarget);
 $('image-select').onchange = (e) => e.target.value && command('selectImage', { name: e.target.value });
 $('btn-open-zoom').onclick = (e) => command('openZoom', null, e.currentTarget);
+$('music-src-folder').onclick = () => command('setMusicSource', { source: 'folder' });
+$('music-src-youtube').onclick = () => command('setMusicSource', { source: 'youtube' });
+$('music-select').onchange = (e) => e.target.value && command('selectSong', { name: e.target.value });
+$('btn-next-song').onclick = (e) => command('nextSong', null, e.currentTarget);
+$('btn-play-music').onclick = (e) => command('playMusic', null, e.currentTarget);
+$('btn-stop-music').onclick = (e) => command('stopMusic', null, e.currentTarget);
+$('music-url').oninput = () => {
+  S.musicUrlDirty = true;
+  $('btn-save-music-url').hidden = false;
+};
+$('btn-save-music-url').onclick = async (e) => {
+  const url = $('music-url').value.trim();
+  if (url && !/^https:\/\/(www\.|m\.|music\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/)|youtu\.be\/)[A-Za-z0-9_-]{11}/.test(url)) {
+    return toast('That is not a YouTube video link.', 'Copy the link from the YouTube app or website (Share → Copy link).', 'error');
+  }
+  if (await command('setMusicYoutube', { url }, e.currentTarget)) {
+    S.musicUrlDirty = false;
+    toast('YouTube link saved on the PC.');
+  }
+};
 $('schedule-time').oninput = $('schedule-enabled').onchange = () => (S.scheduleDirty = true);
 $('btn-save-schedule').onclick = async (e) => {
   const time = $('schedule-time').value;

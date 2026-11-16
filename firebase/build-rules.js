@@ -19,7 +19,11 @@ const ROLE = "(newData.child('role').val() === 'owner' || newData.child('role').
 const inv = "root.child('invites/' + newData.child('invite').val())";
 const code = "newData.child('code').val()";
 const UNCHANGED = (keys) => keys.map((k) => `newData.child('${k}').val() === data.child('${k}').val()`).join(' && ');
-const ACTIONS = 'startStream|endStream|cancel|confirmLive|openZoom|shareImage|shareScreen|stopShare|nextImage|dismissError|selectImage|setSchedule';
+const ACTIONS =
+  'startStream|endStream|cancel|confirmLive|openZoom|shareImage|shareScreen|stopShare|nextImage|dismissError|selectImage|setSchedule|setStartSteps|playMusic|stopMusic|nextSong|selectSong|setMusicSource|setMusicYoutube';
+const STEP_KEYS = ['openZoom', 'youtube', 'shareImage', 'annotation', 'music'];
+// YouTube video link, written for a rules regex literal (slashes and dots escaped).
+const YOUTUBE_URL = String.raw`^https:\/\/(www\.|m\.|music\.)?(youtube\.com\/(watch\?v=|shorts\/|live\/)|youtu\.be\/)[A-Za-z0-9_-]{11}`;
 
 const rules = {
   rules: {
@@ -139,10 +143,23 @@ const rules = {
           '.validate': [
             "newData.hasChildren(['action', 'uid', 'by', 'at']) && newData.child('uid').val() === auth.uid && newData.child('by').val() === auth.token.email && newData.child('at').val() === now",
             `&& newData.child('action').isString() && newData.child('action').val().matches(/^(${ACTIONS})$/)`,
-            "&& (newData.child('action').val() === 'selectImage' ? (newData.child('args/name').isString() && newData.child('args/name').val().length >= 1 && newData.child('args/name').val().length <= 260)",
-            ": newData.child('action').val() === 'setSchedule' ? (newData.child('args/time').isString() && newData.child('args/time').val().matches(/^([01][0-9]|2[0-3]):[0-5][0-9]$/) && newData.child('args/enabled').isBoolean())",
+            "&& ((newData.child('action').val() === 'selectImage' || newData.child('action').val() === 'selectSong') ? newData.child('args/name').exists()",
+            ": newData.child('action').val() === 'setSchedule' ? (newData.child('args/time').exists() && newData.child('args/enabled').exists())",
+            `: newData.child('action').val() === 'setStartSteps' ? (${STEP_KEYS.map((k) => `newData.child('args/${k}').exists()`).join(' || ')})`,
+            ": newData.child('action').val() === 'setMusicSource' ? newData.child('args/source').exists()",
+            ": newData.child('action').val() === 'setMusicYoutube' ? newData.child('args/url').exists()",
             ": !newData.child('args').exists())",
           ].join(' '),
+          // Allowed values; anything else in args is refused.
+          args: {
+            name: { '.validate': 'newData.isString() && newData.val().length >= 1 && newData.val().length <= 260' },
+            time: { '.validate': 'newData.isString() && newData.val().matches(/^([01][0-9]|2[0-3]):[0-5][0-9]$/)' },
+            enabled: { '.validate': 'newData.isBoolean()' },
+            source: { '.validate': "newData.val() === 'folder' || newData.val() === 'youtube'" },
+            url: { '.validate': `newData.isString() && newData.val().length <= 300 && (newData.val() === '' || newData.val().matches(/${YOUTUBE_URL}/))` },
+            ...Object.fromEntries(STEP_KEYS.map((k) => [k, { '.validate': 'newData.isBoolean()' }])),
+            $other: { '.validate': false },
+          },
         },
       },
     },

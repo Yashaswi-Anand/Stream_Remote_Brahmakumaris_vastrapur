@@ -33,22 +33,7 @@ export default function HomeTab({ state, act, pending }) {
         <StreamStatusCard wf={wf} zoom={zoom} />
 
         <Card title="Stream" className="span-2">
-          <div className="toggles start-options">
-            <Toggle
-              label="Open Zoom and my meeting if needed"
-              description={meetingIdFrom(settings.meetingLink) ? `Opens Zoom and meeting ${formatMeetingId(meetingIdFrom(settings.meetingLink))} when no meeting is open.` : 'Opens Zoom and your meeting (set the Meeting ID in Stream settings) when no meeting is open.'}
-              checked={settings.openMeetingIfNeeded}
-              disabled={busy}
-              onChange={(v) => act('updateSettings', { openMeetingIfNeeded: v })}
-            />
-            <Toggle
-              label="Go live on YouTube"
-              description="Starts Zoom's Live on YouTube (needs a paid Zoom plan). Off: shares the image in Zoom only."
-              checked={settings.goLiveOnYouTube}
-              disabled={busy}
-              onChange={(v) => act('updateSettings', { goLiveOnYouTube: v })}
-            />
-          </div>
+          <StartChecklist settings={settings} disabled={busy} act={act} />
 
           <div className="button-row">
             <Button variant="primary" disabled={!canStart} busy={busy && wf.action === 'start'} onClick={() => act('startStream', settings.defaultMode)}>
@@ -94,6 +79,7 @@ export default function HomeTab({ state, act, pending }) {
 
         <ShareCard state={state} act={act} busy={busy} sharing={sharing} />
         <ImageCard images={images} act={act} pending={pending} busy={busy} />
+        <MusicCard music={state.music} act={act} pending={pending} />
         <ScheduleCard schedule={schedule} settings={settings} power={state.power} act={act} pending={pending} onEdit={() => setEditTime(true)} onDelete={() => setConfirm('deleteSchedule')} />
         <SettingsCard settings={settings} act={act} />
         <ActivityCard logs={state.logs} act={act} />
@@ -239,6 +225,133 @@ function ShareCard({ state, act, busy, sharing }) {
         <Toggle label="Share sound with image" checked={settings.shareSound} onChange={(v) => act('updateSettings', { shareSound: v })} />
         <Toggle label="Computer audio with screen" checked={settings.shareComputerAudio} onChange={(v) => act('updateSettings', { shareComputerAudio: v })} />
       </div>
+    </Card>
+  );
+}
+
+/** The Start Stream steps, each with a checkbox (all ticked by default). Unticked steps are skipped. */
+const START_STEPS = [
+  {
+    key: 'openZoom',
+    setting: 'openMeetingIfNeeded',
+    label: 'Open Zoom and the meeting',
+    on: (s) => (meetingIdFrom(s.meetingLink) ? `Opens meeting ${formatMeetingId(meetingIdFrom(s.meetingLink))} when none is open.` : 'Opens your meeting (Meeting ID in Stream settings) when none is open.'),
+    off: 'Uses a meeting that is already open.',
+  },
+  { key: 'youtube', setting: 'goLiveOnYouTube', label: 'Go live on YouTube', on: () => "Zoom's Live on YouTube, then today's scheduled stream → Go live.", off: 'Skipped: no YouTube live stream.' },
+  { key: 'shareImage', setting: 'shareImageOnStart', label: 'Share the image (with sound)', on: () => 'Shares the image shown in the preview.', off: 'Skipped: nothing is shared.' },
+  { key: 'annotation', setting: 'disableAnnotationOnStart', label: 'Disable annotation for others', on: () => 'So viewers cannot draw on the shared image.', off: 'Skipped.' },
+  { key: 'music', setting: 'playMusicOnStart', label: 'Play music', on: () => 'Plays the song or YouTube link from the Music card.', off: 'Skipped: no music.' },
+];
+
+function StartChecklist({ settings, disabled, act }) {
+  const shareOff = settings.shareImageOnStart === false;
+  return (
+    <div className="checklist">
+      <p className="checklist-title">Start Stream will:</p>
+      {START_STEPS.map((step, i) => {
+        const checked = settings[step.setting] !== false;
+        const blocked = step.key === 'annotation' && shareOff;
+        return (
+          <label key={step.key} className={`check-row${checked && !blocked ? '' : ' off'}`}>
+            <input type="checkbox" checked={checked && !blocked} disabled={disabled || blocked} onChange={(e) => act('setStartSteps', { [step.key]: e.target.checked })} />
+            <span className="check-num">{i + 1}</span>
+            <span className="check-text">
+              <strong>{step.label}</strong>
+              <small className="muted">{blocked ? 'Needs "Share the image".' : checked ? step.on(settings) : step.off}</small>
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Music played on the PC (Zoom's "Share sound" sends it into the meeting): a folder of songs, or a YouTube link. */
+function MusicCard({ music, act, pending }) {
+  const [url, setUrl] = useState(music.youtubeUrl || '');
+  useEffect(() => setUrl(music.youtubeUrl || ''), [music.youtubeUrl]);
+  const yt = music.source === 'youtube';
+  const urlChanged = url.trim() !== (music.youtubeUrl || '');
+  const canPlay = yt ? !!music.youtubeUrl : music.count > 0;
+  return (
+    <Card title="Music" actions={music.playing ? <Badge tone="success" pulse>Playing</Badge> : <Badge>Stopped</Badge>}>
+      <div className="segmented" role="tablist">
+        <button type="button" className={!yt ? 'active' : ''} onClick={() => act('setMusicSource', 'folder')}>
+          Songs from a folder
+        </button>
+        <button type="button" className={yt ? 'active' : ''} onClick={() => act('setMusicSource', 'youtube')}>
+          YouTube link
+        </button>
+      </div>
+
+      {!yt ? (
+        <>
+          {music.folder ? (
+            <>
+              <p className="path" title={music.folder}>{music.folder}</p>
+              <p className="muted small">
+                {music.count} song{music.count === 1 ? '' : 's'}
+                {music.skipped ? ` · ${music.skipped} invalid file(s) skipped` : ''}
+              </p>
+              {music.error && <div className="banner banner-warning">{music.error}</div>}
+              {music.count > 0 && (
+                <label className="field">
+                  <span>Song</span>
+                  <select value={music.selectedName} onChange={(e) => e.target.value && act('selectSong', e.target.value)}>
+                    <option value="">Random song</option>
+                    {music.names.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </>
+          ) : (
+            <Empty title="No music folder yet">Choose a folder of MP3, M4A, WAV, OGG or FLAC songs. They play one after another, in random order.</Empty>
+          )}
+          <div className="button-row">
+            <Button variant="ghost" busy={pending.chooseMusicFolder} onClick={() => act('chooseMusicFolder')}>
+              {music.folder ? 'Change folder' : 'Choose folder'}
+            </Button>
+            {music.count > 1 && (
+              <Button variant="ghost" busy={pending.pickRandomSong} onClick={() => act('pickRandomSong')}>
+                Random song
+              </Button>
+            )}
+          </div>
+        </>
+      ) : (
+        <label className="field">
+          <span>YouTube video link</span>
+          <input type="url" value={url} maxLength={300} placeholder="https://www.youtube.com/watch?v=…" onChange={(e) => setUrl(e.target.value)} />
+          <small className="muted">Plays on a loop in the background (nothing is downloaded).</small>
+          {urlChanged && (
+            <div className="button-row">
+              <Button variant="primary" busy={pending.setMusicYoutubeUrl} onClick={() => act('setMusicYoutubeUrl', url.trim())}>
+                Save link
+              </Button>
+            </div>
+          )}
+        </label>
+      )}
+
+      {music.playing && music.title && (
+        <p className="now-playing">
+          ♪ <strong>{music.title}</strong>
+        </p>
+      )}
+      <div className="button-row">
+        <Button variant="primary" disabled={!canPlay} busy={pending.playMusic} onClick={() => act('playMusic')}>
+          ▶ Play
+        </Button>
+        <Button disabled={!music.playing} busy={pending.stopMusic} onClick={() => act('stopMusic')}>
+          ■ Stop
+        </Button>
+      </div>
+      <p className="muted small">Plays on this PC. In Zoom it is heard when sharing with sound ("Share sound" / computer audio).</p>
     </Card>
   );
 }

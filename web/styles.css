@@ -216,3 +216,19 @@ select { text-overflow: ellipsis; }
 .dl-feature { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 4px; align-content: start; }
 .dl-ico { font-size: 1.4rem; line-height: 1; }
 @media (max-width: 380px) { .dl-features { grid-template-columns: 1fr; } .dl-app-icon { width: 54px; height: 54px; } }
+
+
+/* Start Stream checklist */
+.checklist { display: grid; gap: 6px; margin: 10px 0 4px; }
+.checklist-title { margin: 0 0 2px !important; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.check-row { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--bg); color: var(--text); font-size: 0.93rem; }
+.check-row input { width: 20px; height: 20px; min-height: 0; margin: 0; padding: 0; accent-color: var(--primary); cursor: pointer; }
+.check-row.off { opacity: 0.55; }
+.check-row.off span { text-decoration: line-through; }
+.check-row.disabled { cursor: not-allowed; }
+
+/* Music */
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); margin: 8px 0; }
+.segmented button { font: inherit; font-weight: 600; font-size: 0.9rem; border: 0; border-radius: 9px; padding: 9px 6px; min-height: 40px; background: transparent; color: var(--text); cursor: pointer; }
+.segmented button.active { background: var(--primary); color: var(--primary-text); }
+.now-playing { margin: 10px 0 0 !important; padding: 9px 12px; border-radius: 10px; background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

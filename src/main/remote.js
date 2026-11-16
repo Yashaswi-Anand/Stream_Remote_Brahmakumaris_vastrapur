@@ -508,6 +508,26 @@ function remoteState(full) {
     images: { count: full.images.count, selectedName: full.images.selectedName, names: (full.images.names || []).slice(0, 500), error: full.images.error },
     schedule: { enabled: full.schedule.enabled, time: full.schedule.time, nextRun: full.schedule.info.nextRun, configured: full.schedule.info.configured },
     meetingId: /^\d{9,12}$/.test(full.settings.meetingLink || '') ? full.settings.meetingLink : '',
+    startSteps: {
+      openZoom: full.settings.openMeetingIfNeeded !== false,
+      youtube: full.settings.goLiveOnYouTube !== false,
+      shareImage: full.settings.shareImageOnStart !== false,
+      annotation: full.settings.disableAnnotationOnStart !== false,
+      music: full.settings.playMusicOnStart !== false,
+    },
+    music: full.music
+      ? {
+          source: full.music.source,
+          count: full.music.count,
+          names: (full.music.names || []).slice(0, 500),
+          selectedName: full.music.selectedName,
+          youtubeUrl: full.music.youtubeUrl,
+          playing: full.music.playing,
+          playingSource: full.music.playingSource,
+          title: String(full.music.title || '').slice(0, 200),
+          error: full.music.error,
+        }
+      : null,
     logs: (full.logs || []).slice(-40).map(({ ts, level, message }) => ({ ts, level, message: String(message).slice(0, 300) })),
   };
 }

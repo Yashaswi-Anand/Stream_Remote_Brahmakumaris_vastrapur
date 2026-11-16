@@ -39,7 +39,7 @@ const EDITABLE_SETTINGS = {
   releaseManifestUrl: { valid: (v) => v === '' || (typeof v === 'string' && v.length <= 1000 && isHttpsUrl(v)), set: (c, v) => (c.updates.releaseManifestUrl = v) },
 };
 
-function registerIpc({ ctx, actions, remote, buildState, pushState, refreshImages, applyLoginItem, uninstallerPath, removeDataMarker, launchCommand }) {
+function registerIpc({ ctx, actions, remote, buildState, pushState, refreshImages, refreshSongs, applyLoginItem, uninstallerPath, removeDataMarker, launchCommand }) {
   const { store, logger } = ctx;
 
   /** Wraps a handler so failures reach the renderer as { ok: false, error } instead of rejections. */
@@ -133,6 +133,33 @@ function registerIpc({ ctx, actions, remote, buildState, pushState, refreshImage
     logger.info('images', `Selected image: ${path.basename(file)}${folderChanged ? ` (image folder is now ${dir})` : ''}.`);
   });
   handle('images:refresh', async () => refreshImages());
+
+  // ---- Start Stream checklist and music ----------------------------------------------------
+  handle('steps:set', async (steps) => actions.setStartSteps(steps));
+  handle('music:chooseFolder', async () => {
+    const res = await dialog.showOpenDialog(ctx.mainWindow, { title: 'Choose music folder', properties: ['openDirectory'] });
+    if (res.canceled || !res.filePaths[0]) return { ok: false };
+    store.update((c) => {
+      c.streaming.musicFolderPath = res.filePaths[0];
+      c.streaming.selectedMusicPath = '';
+      c.streaming.musicSource = 'folder';
+    });
+    refreshSongs();
+    logger.info('music', `Music folder set to ${res.filePaths[0]} (${ctx.songs.count} song(s)${ctx.songs.skipped ? `, ${ctx.songs.skipped} invalid skipped` : ''}).`);
+    return { ok: true };
+  });
+  handle('music:play', async () => actions.playMusic());
+  handle('music:stop', async () => actions.stopMusic());
+  handle('music:pickRandom', async () => actions.pickRandomSong());
+  handle('music:selectSong', async (name) => {
+    if (typeof name !== 'string' || name.length > 260) throw new Error('Invalid song.');
+    return actions.selectSongByName(name);
+  });
+  handle('music:setSource', async (source) => actions.setMusicSource(source));
+  handle('music:setYoutubeUrl', async (url) => {
+    if (typeof url !== 'string' || url.length > 300) throw new Error('Invalid link.');
+    return actions.setMusicYoutubeUrl(url);
+  });
 
   // ---- Settings ----------------------------------------------------------------------------
   handle('settings:update', async (patch) => {

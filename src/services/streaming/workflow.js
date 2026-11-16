@@ -119,24 +119,32 @@ class StreamWorkflow {
     if (this.state.stream.live) throw new Error('A stream is already live. End it before starting another.');
     if (!MODE_LABELS[mode]) throw new Error('Unknown streaming mode.');
 
-    // The two Start Stream switches decide the steps (both on by default).
+    // The Start Stream checklist decides the steps (all ticked by default); unticked steps are skipped.
     const openIfNeeded = this.settings.openMeetingIfNeeded !== false;
     const goLive = this.settings.goLiveOnYouTube !== false;
+    const shareImage = this.settings.shareImageOnStart !== false;
+    const annotation = shareImage && this.settings.disableAnnotationOnStart !== false;
+    const music = this.settings.playMusicOnStart !== false;
     this.begin(
       'start',
       [
         ['zoom', openIfNeeded ? 'Open Zoom if needed' : 'Check Zoom is running'],
         ['meeting', openIfNeeded ? 'Use the open meeting or start the configured one' : 'Find the open meeting'],
-        ['youtube', goLive ? 'Start YouTube live stream' : 'YouTube live stream (turned off)'],
+        ['youtube', 'Go live on YouTube'],
         ['image', 'Use the image shown in the preview'],
-        ['share', 'Share the image in Zoom'],
+        ['share', 'Share the image in Zoom (with sound)'],
         ['annotation', 'Disable annotation for others'],
+        ['music', 'Play music'],
       ],
       mode,
     );
+    const skip = (id, why = 'Turned off in the Start Stream checklist.') => this.setStep(id, 'skipped', why);
     this.liveConfirmedByUser = false;
     this.state.stream = { phase: 'starting', live: false, liveVerified: false, liveMethod: '', startedAt: null };
-    this.logger.info('workflow', `Start Stream requested by ${source} (open meeting if needed: ${openIfNeeded ? 'on' : 'off'}, YouTube live: ${goLive ? 'on' : 'off'}).`);
+    this.logger.info(
+      'workflow',
+      `Start Stream requested by ${source} (open meeting: ${openIfNeeded ? 'on' : 'off'}, YouTube live: ${goLive ? 'on' : 'off'}, share image: ${shareImage ? 'on' : 'off'}, annotation: ${annotation ? 'on' : 'off'}, music: ${music ? 'on' : 'off'}).`,
+    );
 
     try {
       await this.runStep('zoom', () => this.ensureZoomRunning(openIfNeeded));
@@ -155,7 +163,7 @@ class StreamWorkflow {
       this.setStep('meeting', 'done', meetingNote || meeting.title || 'Meeting window found.');
 
       if (!goLive) {
-        this.setStep('youtube', 'skipped', 'Turned off: sharing in Zoom only.');
+        skip('youtube');
         this.logger.info('youtube', 'YouTube live stream skipped (turned off in Start Stream).');
       }
       if (goLive) await this.runStep('youtube', async () => {
@@ -181,11 +189,28 @@ class StreamWorkflow {
         return 'Live on YouTube (confirmed by you, not verified).';
       });
 
-      const image = await this.runStep('image', async () => this.previewedImage());
-      this.setStep('image', 'done', path.basename(image));
+      if (shareImage) {
+        const image = await this.runStep('image', async () => this.previewedImage());
+        this.setStep('image', 'done', path.basename(image));
+        await this.runStep('share', async () => this.shareImageInMeeting(meeting, image));
+      } else {
+        skip('image');
+        skip('share');
+      }
+      if (annotation) await this.disableAnnotationStep(meeting);
+      else skip('annotation', shareImage ? undefined : 'Nothing is shared, so there is nothing to protect.');
 
-      await this.runStep('share', async () => this.shareImageInMeeting(meeting, image));
-      await this.disableAnnotationStep(meeting);
+      // Music never stops the stream: a problem is shown on the step and logged.
+      if (music && this.musicControl) {
+        this.setStep('music', 'running');
+        try {
+          const res = await this.musicControl.play();
+          this.setStep('music', 'done', res && res.title ? `Playing "${res.title}".` : 'Playing.');
+        } catch (err) {
+          this.setStep('music', 'skipped', err.message);
+          this.logger.warn('music', `Music not started: ${err.message}`);
+        }
+      } else skip('music');
 
       if (!goLive) this.state.stream = { phase: 'sharing', live: false, liveVerified: false, liveMethod: '', startedAt: new Date().toISOString() };
       this.state.message = goLive ? 'Streaming.' : 'Sharing in Zoom.';
@@ -441,6 +466,7 @@ class StreamWorkflow {
     if (this.state.busy) throw new Error('Another automation is already running.');
     this.begin('end', [
       ['live', 'Stop YouTube live stream'],
+      ['music', 'Stop music'],
       ['share', 'Stop sharing'],
       ['meeting', 'End the meeting for all'],
       ['zoom', 'Close Zoom'],
@@ -469,6 +495,7 @@ class StreamWorkflow {
       this.logger.success('youtube', 'YouTube live stream stopped.');
       return 'Live stream stopped.';
     });
+    await step('music', async () => (this.musicControl && this.musicControl.stop() ? 'Music stopped.' : 'No music was playing.'));
     await step('share', async () => {
       try {
         const stopped = meeting ? await this.zoom.stopSharing(meeting) : false;

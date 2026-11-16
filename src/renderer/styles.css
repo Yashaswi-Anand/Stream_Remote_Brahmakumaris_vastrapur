@@ -338,3 +338,21 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 /* Update tab: optional update source */
 .advanced { margin-top: 12px; }
 .advanced summary { cursor: pointer; }
+
+
+/* Start Stream checklist */
+.checklist { display: grid; gap: 6px; margin: 4px 0 14px; }
+.checklist-title { margin: 0 0 2px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.check-row { display: grid; grid-template-columns: 20px 24px 1fr; align-items: start; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; background: var(--surface); }
+.check-row input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--primary); cursor: pointer; }
+.check-row .check-num { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--primary); color: #fff; }
+.check-row .check-text { display: grid; gap: 1px; }
+.check-row.off { opacity: 0.6; }
+.check-row.off .check-num { background: var(--muted); }
+.check-row.off strong { text-decoration: line-through; }
+
+/* Music card */
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); margin-bottom: 10px; }
+.segmented button { border: 0; border-radius: 8px; padding: 8px; background: transparent; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.segmented button.active { background: var(--primary); color: #fff; }
+.now-playing { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(26, 143, 76, 0.12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

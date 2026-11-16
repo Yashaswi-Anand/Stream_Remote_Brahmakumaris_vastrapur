@@ -92,6 +92,9 @@
         <span id="stream-pill" class="pill">Idle</span>
       </div>
       <p id="stream-message" class="muted"></p>
+      <div class="checklist" id="start-steps">
+        <p class="checklist-title">Start Stream will:</p>
+      </div>
       <div class="btn-row">
         <button class="btn primary" id="btn-start" type="button">Start Stream</button>
         <button class="btn danger" id="btn-end" type="button">End Stream</button>
@@ -133,6 +136,39 @@
       <div class="btn-row">
         <button class="btn" id="btn-next-image" type="button">Random image</button>
       </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Music</h2>
+        <span id="music-pill" class="pill">Stopped</span>
+      </div>
+      <div class="segmented" role="tablist">
+        <button type="button" id="music-src-folder">Songs from folder</button>
+        <button type="button" id="music-src-youtube">YouTube link</button>
+      </div>
+      <div id="music-folder-box">
+        <p id="music-count" class="muted small"></p>
+        <div class="field-row">
+          <select id="music-select" aria-label="Choose song"></select>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="btn-next-song" type="button">Random song</button>
+        </div>
+      </div>
+      <div id="music-youtube-box" hidden>
+        <div class="field-row">
+          <input id="music-url" type="url" inputmode="url" maxlength="300" placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube video link">
+        </div>
+        <button class="btn block" id="btn-save-music-url" type="button" hidden>Save link</button>
+        <p class="muted small">Plays on a loop on the PC (nothing is downloaded).</p>
+      </div>
+      <p class="now-playing" id="music-now" hidden></p>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-play-music" type="button">▶ Play</button>
+        <button class="btn" id="btn-stop-music" type="button">■ Stop</button>
+      </div>
+      <p class="muted small">Plays on the PC; heard in Zoom when sharing with sound.</p>
     </section>
 
     <section class="card">

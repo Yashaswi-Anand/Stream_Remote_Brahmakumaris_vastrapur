@@ -1,5 +1,6 @@
 'use strict';
 
+const { youtubeVideoId } = require('../music/musicService');
 const STUDIO_URL_RE = /^https:\/\/studio\.youtube\.com\/channel\/UC[\w-]{20,24}\/livestreaming\/?$/;
 
 /** Default configuration. Anything missing or invalid in config.json falls back to these values. */
@@ -30,6 +31,15 @@ function createDefaultConfig(version = '1.0.0') {
       // Start Stream steps: open Zoom and the configured meeting when none is open; go live on YouTube.
       openMeetingIfNeeded: true,
       goLiveOnYouTube: true,
+      // More Start Stream steps (each can be unticked to skip it; all on by default).
+      shareImageOnStart: true,
+      disableAnnotationOnStart: true,
+      playMusicOnStart: true,
+      // Music played on the PC (heard in Zoom with "Share sound"): songs from a folder, or a YouTube link.
+      musicSource: 'folder',
+      musicFolderPath: '',
+      selectedMusicPath: '',
+      musicYoutubeUrl: '',
       imageFolderPath: '',
       selectedImagePath: '',
       shareSound: true,
@@ -170,6 +180,13 @@ function normalizeConfig(raw, version) {
       youtubeStudioUrl:
         typeof s.youtubeStudioUrl === 'string' && (s.youtubeStudioUrl === '' || STUDIO_URL_RE.test(s.youtubeStudioUrl.trim())) ? s.youtubeStudioUrl.trim() : d.streaming.youtubeStudioUrl,
       goLiveOnYouTube: bool(s.goLiveOnYouTube, d.streaming.goLiveOnYouTube),
+      shareImageOnStart: bool(s.shareImageOnStart, d.streaming.shareImageOnStart),
+      disableAnnotationOnStart: bool(s.disableAnnotationOnStart, d.streaming.disableAnnotationOnStart),
+      playMusicOnStart: bool(s.playMusicOnStart, d.streaming.playMusicOnStart),
+      musicSource: oneOf(s.musicSource, ['folder', 'youtube'], d.streaming.musicSource),
+      musicFolderPath: str(s.musicFolderPath, ''),
+      selectedMusicPath: str(s.selectedMusicPath, ''),
+      musicYoutubeUrl: typeof s.musicYoutubeUrl === 'string' && (s.musicYoutubeUrl === '' || youtubeVideoId(s.musicYoutubeUrl)) ? s.musicYoutubeUrl.trim() : '',
       imageFolderPath: str(s.imageFolderPath, ''),
       selectedImagePath: str(s.selectedImagePath, ''),
       shareSound: bool(s.shareSound, d.streaming.shareSound),

@@ -20,6 +20,8 @@ const { ImageWindow } = require('./imageWindow');
 const { registerIpc } = require('./ipc');
 const { createActions } = require('./actions');
 const { RemoteClient, remoteState } = require('./remote');
+const { MusicPlayer } = require('./musicPlayer');
+const { listSongs, songTitle } = require('../services/music/musicService');
 
 const APP_ID = 'com.zoomstreamautomation.app';
 const LOGIN_ITEM_NAME = 'ZoomStreamAutomation';
@@ -49,6 +51,8 @@ const ctx = {
   remote: null,
   zoomStatus: { installed: false, running: false, inMeeting: false, sharingDetected: false, status: 'unknown' },
   images: { folder: '', count: 0, skipped: 0, error: null },
+  songs: { folder: '', count: 0, skipped: 0, error: null, list: [] },
+  music: null,
   updateStatus: { checking: false, error: '', checkedThisSession: false, installing: false, received: 0, total: 0, downloadSize: 0 },
   pushTimer: null,
 };
@@ -89,6 +93,18 @@ function refreshImages() {
   }
 }
 
+function refreshSongs() {
+  const folder = ctx.store.get().streaming.musicFolderPath;
+  const { songs, skipped, error } = folder ? listSongs(folder) : { songs: [], skipped: 0, error: null };
+  ctx.songs = { folder, count: songs.length, skipped, error, list: songs };
+  const selected = ctx.store.get().streaming.selectedMusicPath;
+  if (selected && !songs.includes(selected)) {
+    ctx.store.update((c) => {
+      c.streaming.selectedMusicPath = '';
+    });
+  }
+}
+
 function buildState() {
   const c = ctx.store.get();
   const selected = c.streaming.selectedImagePath;
@@ -110,6 +126,9 @@ function buildState() {
       defaultMode: c.streaming.defaultMode,
       openMeetingIfNeeded: c.streaming.openMeetingIfNeeded,
       goLiveOnYouTube: c.streaming.goLiveOnYouTube,
+      shareImageOnStart: c.streaming.shareImageOnStart,
+      disableAnnotationOnStart: c.streaming.disableAnnotationOnStart,
+      playMusicOnStart: c.streaming.playMusicOnStart,
       youtubeAccountEmail: c.streaming.youtubeAccountEmail,
       youtubeStudioUrl: c.streaming.youtubeStudioUrl,
       youtubeProfile: youtubeProfileInfo(c.streaming.youtubeAccountEmail),
@@ -133,6 +152,20 @@ function buildState() {
       selectedPath: selected,
       selectedName: selected ? path.basename(selected) : '',
       previewUrl: selected ? `zsa-img://current/?v=${encodeURIComponent(selected)}` : '',
+    },
+    music: {
+      source: c.streaming.musicSource,
+      folder: ctx.songs.folder,
+      count: ctx.songs.count,
+      skipped: ctx.songs.skipped,
+      error: ctx.songs.error,
+      names: (ctx.songs.list || []).map((f) => path.basename(f)),
+      selectedName: c.streaming.selectedMusicPath ? path.basename(c.streaming.selectedMusicPath) : '',
+      selectedTitle: c.streaming.selectedMusicPath ? songTitle(c.streaming.selectedMusicPath) : '',
+      youtubeUrl: c.streaming.musicYoutubeUrl,
+      playing: !!ctx.music?.state.playing,
+      playingSource: ctx.music?.state.source || '',
+      title: ctx.music?.state.title || '',
     },
     schedule: {
       enabled: c.schedule.enabled,
@@ -429,6 +462,7 @@ async function init() {
   ctx.zoom = new ZoomService({ uia: ctx.uia, store: ctx.store, logger: ctx.logger });
   ctx.youtube = new YouTubeLiveService({ zoom: ctx.zoom, logger: ctx.logger });
   ctx.imageWindow = new ImageWindow(ctx.logger);
+  ctx.music = new MusicPlayer({ logger: ctx.logger, onChange: () => pushState() });
   ctx.workflow = new StreamWorkflow({
     store: ctx.store,
     logger: ctx.logger,
@@ -471,9 +505,11 @@ async function init() {
   }
   applyLoginItem(ctx.store.get().app.launchOnWindowsStartup);
 
-  const actions = createActions({ ctx, refreshImages });
+  refreshSongs();
+  const actions = createActions({ ctx, refreshImages, refreshSongs });
+  ctx.workflow.musicControl = { play: () => actions.playMusic(), stop: () => ctx.music.stop() };
   ctx.remote = createRemote(actions);
-  registerIpc({ ctx, actions, remote: ctx.remote, buildState, pushState, refreshImages, applyLoginItem, uninstallerPath, removeDataMarker: path.join(userData, REMOVE_DATA_MARKER), launchCommand });
+  registerIpc({ ctx, actions, remote: ctx.remote, buildState, pushState, refreshImages, refreshSongs, applyLoginItem, uninstallerPath, removeDataMarker: path.join(userData, REMOVE_DATA_MARKER), launchCommand });
 
   createTray();
   // Started at Windows sign-in: stay in the tray (no window) when background mode is on.
@@ -510,6 +546,7 @@ async function init() {
   setInterval(pollZoom, 4000);
   setInterval(() => {
     refreshImages();
+    refreshSongs();
     expireWakeTest();
     pushState();
   }, 30000);
@@ -575,7 +612,8 @@ function previewDataUrl() {
 const REMOTE_LABELS = {
   startStream: 'Start Stream', endStream: 'End Stream', cancel: 'Cancel', confirmLive: "I'm live", openZoom: 'Open Zoom meeting',
   shareImage: 'Share Image', shareScreen: 'Share Screen', stopShare: 'Stop Share', nextImage: 'Random image', selectImage: 'Choose image',
-  setSchedule: 'Save schedule', dismissError: 'Dismiss error',
+  setSchedule: 'Save schedule', dismissError: 'Dismiss error', setStartSteps: 'Start Stream steps', playMusic: 'Play music',
+  stopMusic: 'Stop music', nextSong: 'Random song', selectSong: 'Choose song', setMusicSource: 'Music source', setMusicYoutube: 'YouTube music link',
 };
 
 function createRemote(actions) {
@@ -592,6 +630,13 @@ function createRemote(actions) {
     selectImage: (a) => actions.selectImageByName(String(a.name || '')),
     setSchedule: (a) => actions.saveDailySchedule({ time: a.time, enabled: a.enabled }),
     dismissError: () => actions.dismissError(),
+    setStartSteps: (a) => actions.setStartSteps(a),
+    playMusic: () => actions.playMusic(),
+    stopMusic: () => actions.stopMusic(),
+    nextSong: () => actions.pickRandomSong(),
+    selectSong: (a) => actions.selectSongByName(String(a.name || '')),
+    setMusicSource: (a) => actions.setMusicSource(a.source),
+    setMusicYoutube: (a) => actions.setMusicYoutubeUrl(String(a.url || '')),
   };
   return new RemoteClient({
     store: ctx.store,
@@ -637,6 +682,7 @@ app.on('before-quit', () => {
     ctx.remote?.stop();
     ctx.uia?.stop();
     ctx.imageWindow?.destroy();
+    ctx.music?.destroy();
     ctx.store?.saveNow();
   } catch {
     // Best-effort shutdown.

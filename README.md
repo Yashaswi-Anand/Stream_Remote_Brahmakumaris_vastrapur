@@ -12,7 +12,7 @@ Everything runs locally on the stream PC. Settings live in one JSON file. Versio
 
 | File | Use it when |
 | --- | --- |
-| `dist/Zoom-Stream-Automation-Setup-2.4.1.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
+| `dist/Zoom-Stream-Automation-Setup-2.5.0.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
 
 Copy either file to another Windows 10/11 (64-bit) PC and run it. No source code, Node.js or other runtime is needed.
 The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC". Click **More info → Run anyway**.
@@ -38,6 +38,8 @@ The builds are not code-signed, so Windows SmartScreen may show "Windows protect
 
   Each step shows its live status (✓ done, ✕ failed with the reason and what to do). Start is disabled while a stream is live or an automation is running, so duplicate starts can't happen. **Cancel** stops a running automation.
 - **End Stream** (asks first): stops the YouTube live stream and sharing, closes the image window, **ends the meeting for all** and then **closes Zoom**. Zoom is only closed once the meeting has really ended, so a meeting is never left running without its host.
+- **Start Stream checklist**: every step has a checkbox, all ticked by default: open Zoom and the meeting, go live on YouTube, share the image (with sound), disable annotation for others, play music. Unticked steps are skipped (shown as *Skipped*). The same checklist is on the Stream Remote website and is used by the daily schedule.
+- **Music**: songs from a folder (MP3, M4A, WAV, OGG, FLAC; choose one or random, then the folder plays on in random order) or a YouTube link (plays on a loop). **Play / Stop** in the app and on the website; Start Stream plays it as its last step and End Stream stops it. It plays on the PC, so Zoom sends it into the stream when sharing with sound.
 - **Share**: **Share Image** shares the selected image, **Share Screen** shares your screen with computer audio, **Stop Share** stops sharing.
 - **Share image**: **Choose image…** picks one specific picture; **Choose Folder** picks a folder of PNG/JPG/JPEG/WebP images and **Pick another random image** picks a different one from it. **The image shown in the preview is the one shared** by Start Stream and Share Image (a random one is picked only when none is selected). Files that only look like images (wrong contents) are rejected.
 - **Schedule**: shows the next run. **Edit Time** has just the **daily start time** (default **05:50 AM**) and **Schedule enabled**: the stream starts automatically every day at that time, in this PC's time zone. You can also turn the schedule off with the toggle or delete it.
@@ -63,7 +65,7 @@ Sets up the PC to **switch itself on from Shut down** at the stream time, using 
 - Shows the installed version and, once a **release manifest URL** is set, the latest version and its release notes. Without a URL, it says update checking is unavailable.
 - Manifest format (served over HTTPS):
   ```json
-  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.4.1.exe", "publishedAt": "2026-11-01" }
+  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.5.0.exe", "publishedAt": "2026-11-01" }
   ```
 - **Uninstall** opens the Windows uninstaller after you confirm. Nothing is removed until you confirm in the uninstaller. Tick *Also delete my settings…* to remove the settings folder as well. The uninstaller always removes the app's scheduled task and Windows sign-in entry; upgrades keep them. The portable build has no uninstaller: use **Remove schedule & startup entry**, then delete the exe.
 
