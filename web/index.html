@@ -35,8 +35,8 @@
       <p class="muted">First start only. Use the setup code you saved in the Firebase console (Realtime Database → <code>secrets/setupCode</code>).</p>
       <label>Setup code<input name="code" autocomplete="off" required></label>
       <label>Your email<input name="email" type="email" autocomplete="username" required></label>
-      <label>Password (10+ characters)<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
-      <label>Repeat password<input name="password2" type="password" autocomplete="new-password" minlength="10" required></label>
+      <label>Password (8+ characters)<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label>Repeat password<input name="password2" type="password" autocomplete="new-password" minlength="8" required></label>
       <p class="form-error" data-error></p>
       <button class="btn primary block" type="submit">Create account</button>
     </form>
@@ -47,8 +47,8 @@
       <img class="auth-logo" src="/icon-192.png" alt="">
       <h1>Set your password</h1>
       <p class="muted">You were invited as <strong data-invite-email></strong>. Choose a password (if you already have an account with this email, enter its password).</p>
-      <label>Password (10+ characters)<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
-      <label>Repeat password<input name="password2" type="password" autocomplete="new-password" minlength="10" required></label>
+      <label>Password (8+ characters)<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label>Repeat password<input name="password2" type="password" autocomplete="new-password" minlength="8" required></label>
       <p class="form-error" data-error></p>
       <button class="btn primary block" type="submit">Save and sign in</button>
     </form>
@@ -226,7 +226,7 @@
       <div class="card-head"><h2>Change my password</h2></div>
       <form class="stack" id="password-form">
         <label>Current password<input name="current" type="password" autocomplete="current-password" required></label>
-        <label>New password (10+ characters)<input name="next" type="password" autocomplete="new-password" minlength="10" required></label>
+        <label>New password (8+ characters)<input name="next" type="password" autocomplete="new-password" minlength="8" required></label>
         <p class="form-error" data-error></p>
         <button class="btn block" type="submit">Change password</button>
       </form>

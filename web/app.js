@@ -137,7 +137,7 @@ function niceError(err) {
   const code = err?.code || '';
   if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-login-credentials') return 'Wrong email or password.';
   if (code === 'auth/too-many-requests') return 'Too many attempts. Wait a few minutes or reset your password.';
-  if (code === 'auth/weak-password') return 'Choose a longer password (10+ characters).';
+  if (code === 'auth/weak-password') return 'Choose a longer password (8+ characters).';
   if (code === 'auth/invalid-email') return 'That email address is not valid.';
   if (code === 'auth/network-request-failed') return 'No internet connection.';
   if (code === 'auth/requires-recent-login') return 'Sign in again, then try once more.';
@@ -253,7 +253,7 @@ $('btn-forgot').onclick = async () => {
 
 bindForm('setup-form', async (v) => {
   if (v.password !== v.password2) throw new Error('The passwords do not match.');
-  if (v.password.length < 10) throw new Error('Use at least 10 characters.');
+  if (v.password.length < 8) throw new Error('Use at least 8 characters.');
   await holdRouting(async () => {
     const user = await signInOrCreate(v.email.trim(), v.password);
     try {
@@ -291,7 +291,7 @@ async function showInvite(token) {
 
 bindForm('invite-form', async (v) => {
   if (v.password !== v.password2) throw new Error('The passwords do not match.');
-  if (v.password.length < 10) throw new Error('Use at least 10 characters.');
+  if (v.password.length < 8) throw new Error('Use at least 8 characters.');
   await holdRouting(async () => {
     const user = await signInOrCreate(invite.email, v.password);
     try {
@@ -827,7 +827,7 @@ $('btn-copy-invite').onclick = async () => {
 };
 
 bindForm('password-form', async (v, form) => {
-  if (v.next.length < 10) throw new Error('Use at least 10 characters.');
+  if (v.next.length < 8) throw new Error('Use at least 8 characters.');
   await reauthenticateWithCredential(S.user, EmailAuthProvider.credential(S.user.email, v.current));
   await updatePassword(S.user, v.next);
   audit('Changed password');

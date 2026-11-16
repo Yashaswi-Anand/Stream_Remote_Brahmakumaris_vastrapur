@@ -71,7 +71,7 @@ npm run deploy
 This uploads the website (`web/`) and the database rules. Run `npm run deploy` again after any change to `web/` or the rules.
 
 ## 6. First use
-1. Open **https://<project-id>.web.app**. The first visit shows **Create the owner account**: enter the setup code from step 3, your email and a password (10+ characters).
+1. Open **https://<project-id>.web.app**. The first visit shows **Create the owner account**: enter the setup code from step 3, your email and a password (8+ characters).
 2. **Admin → Add a PC**. In the desktop app (2.1.0 or later), go to the **Remote** tab and enter the website address `https://<project-id>.web.app` and the code.
 3. **Admin → People → Invite by email** creates a one-time link (valid 7 days) for the client.
 4. Lost password? Use **Forgot password?** on the sign-in page. Firebase emails a reset link.
