@@ -30,6 +30,7 @@ const EDITABLE_SETTINGS = {
   autoClickGoLive: { valid: isBool, set: (c, v) => (c.streaming.autoClickGoLive = v) },
   liveConfirmTimeoutMinutes: { valid: isInt(1, 30), set: (c, v) => (c.streaming.liveConfirmTimeoutMinutes = v) },
   launchOnWindowsStartup: { valid: isBool, set: (c, v) => (c.app.launchOnWindowsStartup = v) },
+  runInBackground: { valid: isBool, set: (c, v) => (c.app.runInBackground = v) },
   logRetention: { valid: isInt(20, 5000), set: (c, v) => (c.app.logRetention = v) },
   releaseManifestUrl: { valid: (v) => v === '' || (typeof v === 'string' && v.length <= 1000 && isHttpsUrl(v)), set: (c, v) => (c.updates.releaseManifestUrl = v) },
 };
@@ -140,6 +141,7 @@ function registerIpc({ ctx, actions, remote, buildState, pushState, refreshImage
     store.update((c) => {
       for (const [key, value] of Object.entries(patch)) EDITABLE_SETTINGS[key].set(c, value);
     });
+    if ('runInBackground' in patch) logger.info('app', `Keep running in the background when the window is closed: ${patch.runInBackground ? 'on' : 'off'}.`);
     if ('launchOnWindowsStartup' in patch) {
       applyLoginItem(patch.launchOnWindowsStartup);
       logger.info('app', `Launch on Windows sign-in ${patch.launchOnWindowsStartup ? 'enabled' : 'disabled'}.`);
@@ -332,7 +334,18 @@ function registerIpc({ ctx, actions, remote, buildState, pushState, refreshImage
   // ---- Remote control website ----------------------------------------------------------------
   handle('remote:pair', async (serverUrl, code) => {
     if (typeof serverUrl !== 'string' || typeof code !== 'string' || serverUrl.length > 300 || code.length > 20) throw new Error('Invalid values.');
-    return { ok: true, result: await remote.pair(serverUrl, code) };
+    const result = await remote.pair(serverUrl, code);
+    // A paired PC should come back online by itself after a restart: start (hidden) at Windows sign-in.
+    if (!store.get().app.backgroundStartupApplied) {
+      store.update((c) => {
+        c.app.launchOnWindowsStartup = true;
+        c.app.backgroundStartupApplied = true;
+      });
+      applyLoginItem(true);
+      logger.info('app', 'The app now starts in the background at Windows sign-in, so this PC stays reachable from the website.');
+    }
+    pushState();
+    return { ok: true, result };
   });
   handle('remote:setEnabled', async (enabled) => {
     if (!isBool(enabled)) throw new Error('Invalid value.');

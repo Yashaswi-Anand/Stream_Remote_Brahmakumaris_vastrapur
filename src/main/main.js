@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const os = require('os');
-const { app, BrowserWindow, protocol, net, dialog, safeStorage, desktopCapturer, screen, nativeImage } = require('electron');
+const { app, BrowserWindow, protocol, net, dialog, safeStorage, desktopCapturer, screen, nativeImage, Tray, Menu } = require('electron');
 
 const { ConfigStore } = require('../services/config/configStore');
 const { Logger } = require('../services/logging/logger');
@@ -117,6 +117,7 @@ function buildState() {
       autoClickGoLive: c.streaming.autoClickGoLive,
       liveConfirmTimeoutMinutes: c.streaming.liveConfirmTimeoutMinutes,
       launchOnWindowsStartup: c.app.launchOnWindowsStartup,
+      runInBackground: c.app.runInBackground,
       logRetention: c.app.logRetention,
       releaseManifestUrl: c.updates.releaseManifestUrl,
     },
@@ -167,6 +168,7 @@ function pushState() {
     ctx.pushTimer = null;
     if (ctx.mainWindow && !ctx.mainWindow.isDestroyed()) ctx.mainWindow.webContents.send('state', buildState());
     ctx.remote?.stateChanged();
+    updateTray();
   }, 80);
 }
 
@@ -186,7 +188,7 @@ async function pollZoom() {
   }
 }
 
-function createMainWindow() {
+function createMainWindow({ hidden = false } = {}) {
   const win = new BrowserWindow({
     width: 1240,
     height: 840,
@@ -205,9 +207,14 @@ function createMainWindow() {
       webSecurity: true,
     },
   });
-  win.once('ready-to-show', () => win.show());
-  // Never leave an invisible window if the first paint is slow (e.g. antivirus scanning on first run).
-  setTimeout(() => !win.isDestroyed() && !win.isVisible() && win.show(), 8000);
+  if (!hidden) {
+    win.once('ready-to-show', () => win.show());
+    // Never leave an invisible window if the first paint is slow (e.g. antivirus scanning on first run).
+    // Cancelled once the window was shown or hidden, so a window closed to the tray stays closed.
+    const fallback = setTimeout(() => !win.isDestroyed() && !win.isVisible() && win.show(), 8000);
+    win.once('show', () => clearTimeout(fallback));
+    win.once('hide', () => clearTimeout(fallback));
+  }
   // If the page crashes or fails to load, log it and reload instead of leaving a blank window.
   let reloads = 0;
   const recover = (why) => {
@@ -222,6 +229,21 @@ function createMainWindow() {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.on('close', (e) => {
+    // Background mode: closing the window only hides it; the app keeps running in the tray.
+    if (!ctx.isQuitting && ctx.store.get().app.runInBackground && tray) {
+      e.preventDefault();
+      win.hide();
+      if (!ctx.trayHintShown) {
+        ctx.trayHintShown = true;
+        tray.displayBalloon({
+          iconType: 'info',
+          title: app.getName(),
+          content: 'Still running in the background, so the website and schedule keep working. Right-click the tray icon to quit.',
+        });
+        ctx.logger.info('app', 'Window closed: the app keeps running in the background (system tray).');
+      }
+      return;
+    }
     if (!ctx.workflow.state.busy) return;
     const choice = dialog.showMessageBoxSync(win, {
       type: 'warning',
@@ -235,13 +257,60 @@ function createMainWindow() {
   });
   win.on('closed', () => {
     ctx.mainWindow = null;
-    app.quit();
+    if (!tray || ctx.isQuitting || !ctx.store.get().app.runInBackground) app.quit();
   });
 
   const devUrl = process.env.VITE_DEV_SERVER_URL;
   if (devUrl) win.loadURL(devUrl);
   else win.loadFile(path.join(__dirname, '..', '..', 'renderer-dist', 'index.html'));
   return win;
+}
+
+// ---- System tray (background mode) ---------------------------------------------------------
+
+let tray = null;
+let trayLabel = '';
+
+function remoteLabel() {
+  const r = ctx.remote ? ctx.remote.info() : null;
+  if (!r || !r.paired) return 'Remote control: not paired';
+  if (!r.enabled) return 'Remote control: off';
+  return `Remote control: ${{ connected: 'connected', connecting: 'connecting…', error: 'not connected', off: 'off' }[r.connection] || r.connection}`;
+}
+
+function quitApp() {
+  ctx.isQuitting = true;
+  app.quit();
+}
+
+function createTray() {
+  try {
+    const icon = nativeImage.createFromPath(path.join(__dirname, 'app-icon.png')).resize({ width: 16, height: 16 });
+    tray = new Tray(icon);
+    tray.on('click', showMainWindow);
+    tray.on('double-click', showMainWindow);
+    updateTray();
+  } catch (err) {
+    tray = null;
+    ctx.logger.warn('app', `The tray icon could not be created (${err.message}); closing the window will quit the app.`);
+  }
+}
+
+/** Refreshes the tray tooltip and menu when the remote status changes. */
+function updateTray() {
+  if (!tray) return;
+  const label = remoteLabel();
+  if (label === trayLabel) return;
+  trayLabel = label;
+  tray.setToolTip(`${app.getName()} – ${label}`);
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Open Zoom Stream Automation', click: showMainWindow },
+      { label, enabled: false },
+      { type: 'separator' },
+      { label: 'Quit (the website will show this PC offline)', click: quitApp },
+    ]),
+  );
 }
 
 /** Diagnostics ("--zsa-selftest-image"): opens the image window once with the selected image and logs the result. */
@@ -367,14 +436,29 @@ async function init() {
   ctx.imageWindow.prepare().catch((err) => ctx.logger.warn('image', `Image window could not be prepared: ${err.message}`));
 
   refreshImages();
+  // Once a PC is paired with the website, start the app (hidden) at Windows sign-in so the PC is reachable
+  // after a restart. Done once; the user can turn it off again in the Remote tab.
+  {
+    const c = ctx.store.get();
+    if (!c.app.backgroundStartupApplied && c.remote.deviceId && c.remote.serverUrl) {
+      ctx.store.update((cfg) => {
+        cfg.app.launchOnWindowsStartup = true;
+        cfg.app.backgroundStartupApplied = true;
+      });
+      ctx.logger.info('app', 'This PC is paired with the website: the app now starts in the background at Windows sign-in.');
+    }
+  }
   applyLoginItem(ctx.store.get().app.launchOnWindowsStartup);
 
   const actions = createActions({ ctx, refreshImages });
   ctx.remote = createRemote(actions);
   registerIpc({ ctx, actions, remote: ctx.remote, buildState, pushState, refreshImages, applyLoginItem, uninstallerPath, removeDataMarker: path.join(userData, REMOVE_DATA_MARKER), launchCommand });
 
-  ctx.mainWindow = createMainWindow();
-  ctx.logger.info('app', `Started v${app.getVersion()}${process.argv.includes(SCHEDULED_ARG) ? ' by Windows Task Scheduler' : process.argv.includes(STARTUP_ARG) ? ' at Windows sign-in' : ''}.`);
+  createTray();
+  // Started at Windows sign-in: stay in the tray (no window) when background mode is on.
+  const startHidden = process.argv.includes(STARTUP_ARG) && !!tray && ctx.store.get().app.runInBackground;
+  ctx.mainWindow = createMainWindow({ hidden: startHidden });
+  ctx.logger.info('app', `Started v${app.getVersion()}${process.argv.includes(SCHEDULED_ARG) ? ' by Windows Task Scheduler' : process.argv.includes(STARTUP_ARG) ? ' at Windows sign-in' : ''}${startHidden ? ', running in the background (tray)' : ''}.`);
 
   ctx.mainWindow.webContents.on('did-finish-load', () => pushState());
   app.on('second-instance', (_e, argv) => {
@@ -521,9 +605,12 @@ function showMainWindow() {
   ctx.mainWindow.focus();
 }
 
-app.on('window-all-closed', () => app.quit());
+app.on('window-all-closed', () => {
+  if (!tray || ctx.isQuitting || !ctx.store?.get().app.runInBackground) app.quit();
+});
 
 app.on('before-quit', () => {
+  ctx.isQuitting = true;
   try {
     ctx.scheduler?.stop();
     ctx.remote?.stop();

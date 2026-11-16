@@ -460,7 +460,7 @@ function renderPc() {
   const last = S.presence[S.pcId]?.lastSeen;
   if (!S.connected) banner.textContent = 'Connecting…';
   else if (!pc) banner.textContent = S.me?.role === 'owner' ? 'No PC is paired yet. Open Admin → Add a PC.' : 'No PC is paired yet. Ask the owner to pair the stream PC.';
-  else if (!online) banner.textContent = `${pc.name} is offline${last ? ` (last seen ${timeText(last)})` : ''}. Make sure the PC is on, signed in and Zoom Stream Automation is open.`;
+  else if (!online) banner.textContent = `${pc.name} is offline${last ? ` (last seen ${timeText(last)})` : ''}. Make sure the PC is on and signed in to Windows; Zoom Stream Automation starts by itself in the background (version 2.3.0 or later).`;
   banner.hidden = S.connected && !!pc && online;
 
   const sel = $('pc-select');

@@ -6,6 +6,10 @@ function createDefaultConfig(version = '1.0.0') {
     app: {
       version,
       launchOnWindowsStartup: false,
+      // Closing the window keeps the app running in the system tray (so remote control and schedules keep working).
+      runInBackground: true,
+      // Set once the app has turned on "start with Windows" for a paired PC (done only once; the user can turn it off).
+      backgroundStartupApplied: false,
       logRetention: 300,
       // Last "wake from hibernate/sleep" test: result is '' | 'pending' | 'passed' | 'failed'.
       wakeTest: { scheduledFor: '', startedAt: '', wokeAt: '', result: '', detail: '' },
@@ -142,6 +146,8 @@ function normalizeConfig(raw, version) {
     app: {
       version: d.app.version,
       launchOnWindowsStartup: bool(app.launchOnWindowsStartup, d.app.launchOnWindowsStartup),
+      runInBackground: bool(app.runInBackground, d.app.runInBackground),
+      backgroundStartupApplied: bool(app.backgroundStartupApplied, d.app.backgroundStartupApplied),
       logRetention,
       wakeTest: normalizeWakeTest(app.wakeTest),
       biosPowerOn: normalizeBiosPowerOn(app.biosPowerOn),

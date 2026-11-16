@@ -12,8 +12,8 @@ Everything runs locally on the stream PC. Settings live in one JSON file. Versio
 
 | File | Use it when |
 | --- | --- |
-| `dist/Zoom-Stream-Automation-Setup-2.2.1.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
-| `dist/Zoom-Stream-Automation-Portable-2.2.1.exe` | Run without installing (e.g. from a USB stick). Schedules point at the exe's current location, so don't move it after saving a schedule. |
+| `dist/Zoom-Stream-Automation-Setup-2.3.0.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
+| `dist/Zoom-Stream-Automation-Portable-2.3.0.exe` | Run without installing (e.g. from a USB stick). Schedules point at the exe's current location, so don't move it after saving a schedule. |
 
 Copy either file to another Windows 10/11 (64-bit) PC and run it. No source code, Node.js or other runtime is needed.
 The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC". Click **More info → Run anyway**.
@@ -55,6 +55,7 @@ Sets up the PC to **switch itself on from Shut down** at the stream time, using 
 
 ### Remote tab
 - Pairs this PC with your remote control website. On the website (signed in as the owner) open **Admin → Add a PC**, then type the website address and the 8-character code here.
+- **Keep this PC online**: the app keeps running in the **system tray** when its window is closed, and **starts hidden at Windows sign-in**. This is turned on automatically once the PC is paired, so the website reaches the PC without the window being open. Right-click the tray icon to open the app or quit. The PC must still be on and signed in to Windows; see Auto Power On for automatic sign-in.
 - **Allow remote control** switches the connection on/off. **Unpair this PC** removes it. A notice appears while someone on the website is viewing this PC's screen.
 - The PC only connects *out* to the website's Firebase database; nothing on the PC is opened to the internet. Each paired PC has its own anonymous Firebase sign-in. Its key is stored encrypted by Windows (`remote-device.bin` in the settings folder), never in `config.json`.
 - PCs paired with 2.0.x (the old Node.js website) must be paired again with the Firebase website.
@@ -63,7 +64,7 @@ Sets up the PC to **switch itself on from Shut down** at the stream time, using 
 - Shows the installed version and, once a **release manifest URL** is set, the latest version and its release notes. Without a URL, it says update checking is unavailable.
 - Manifest format (served over HTTPS):
   ```json
-  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.2.1.exe", "publishedAt": "2026-11-01" }
+  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.3.0.exe", "publishedAt": "2026-11-01" }
   ```
 - **Uninstall** opens the Windows uninstaller after you confirm. Nothing is removed until you confirm in the uninstaller. Tick *Also delete my settings…* to remove the settings folder as well. The uninstaller always removes the app's scheduled task and Windows sign-in entry; upgrades keep them. The portable build has no uninstaller: use **Remove schedule & startup entry**, then delete the exe.
 

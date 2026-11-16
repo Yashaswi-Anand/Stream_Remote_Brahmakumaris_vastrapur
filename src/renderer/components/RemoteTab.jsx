@@ -92,13 +92,33 @@ export default function RemoteTab({ state, act, pending, toast }) {
           )}
         </Card>
 
+        <Card title="Keep this PC online" className="span-2">
+          <p className="muted">The website can only reach this PC while the app is running. These keep it running without the window open.</p>
+          <Toggle
+            checked={state.settings.runInBackground}
+            onChange={(v) => act('updateSettings', { runInBackground: v })}
+            label="Keep running in the background when the window is closed"
+            description="Closing the window hides it to the system tray (bottom-right, near the clock). Right-click the tray icon to open the app or quit."
+          />
+          <Toggle
+            checked={state.settings.launchOnWindowsStartup}
+            onChange={(v) => act('updateSettings', { launchOnWindowsStartup: v })}
+            label="Start in the background when Windows signs in"
+            description="After a restart the app starts by itself in the tray, without opening its window. Turned on automatically when this PC is paired."
+          />
+          {r.paired && (!state.settings.runInBackground || !state.settings.launchOnWindowsStartup) && (
+            <div className="banner banner-warning">With a switch off, the website shows this PC offline {!state.settings.launchOnWindowsStartup ? 'after a restart until you open the app' : 'whenever the window is closed'}.</div>
+          )}
+          <p className="muted small">The PC must also be switched on and signed in to Windows. For unattended restarts, set up automatic sign-in in the Auto Power On tab.</p>
+        </Card>
+
         <Card title="How it works" className="span-2">
           <ul className="plain-list">
             <li>This PC connects out to your website's Firebase database; nothing on this PC is opened to the internet.</li>
             <li>The phone's buttons run the same steps as this window (Start Stream, Share, End Stream, schedule).</li>
             <li>The PC screen is sent only while someone has "Show live screen" open, and you see a notice here when it is.</li>
             <li>This PC signs in to Firebase with its own key, stored encrypted by Windows (not in the settings file). Remove the PC on the website, or unpair here, to revoke it.</li>
-            <li>The PC must be on, signed in and unlocked, with this app open, for the website to control it.</li>
+            <li>The PC must be on and signed in, with this app running (it can run in the background in the tray). Zoom automation also needs the screen unlocked.</li>
           </ul>
         </Card>
       </div>
