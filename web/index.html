@@ -175,33 +175,48 @@
   </main>
 
   <main class="view dash" data-view="download" hidden>
-    <section class="card">
-      <div class="card-head"><h2>Download the desktop app</h2><span class="pill" id="dl-version"></span></div>
-      <p class="muted">Zoom Stream Automation for the Windows 10/11 PC that runs Zoom. Download it on that PC.</p>
-      <div class="table-wrap">
-        <table class="dl-table">
-          <thead><tr><th>File</th><th>Version</th><th>Size</th><th></th></tr></thead>
-          <tbody id="dl-rows"></tbody>
-        </table>
+    <section class="card dl-hero">
+      <div class="dl-hero-top">
+        <img class="dl-app-icon" src="/icon-192.png" alt="">
+        <div>
+          <h1 class="dl-title">Zoom Stream Automation</h1>
+          <p class="muted dl-sub">Desktop app for the stream PC · Windows 10/11, 64-bit</p>
+        </div>
       </div>
-      <p class="muted small" id="dl-empty" hidden>No release has been published yet. The owner publishes the installers as a GitHub release.</p>
-      <p class="muted small" id="dl-published"></p>
+      <div class="dl-meta">
+        <span class="dl-chip dl-chip-version" id="dl-version">…</span>
+        <span class="dl-chip" id="dl-size" hidden></span>
+        <span class="dl-chip" id="dl-date" hidden></span>
+      </div>
+      <a class="btn primary dl-main" id="dl-button" href="#" rel="noopener" hidden>
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M11 4h2v9.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V4zM5 18h14v2H5z"/></svg>
+        <span>Download installer</span>
+      </a>
+      <p class="muted small dl-file" id="dl-file"></p>
+      <p class="dl-empty" id="dl-empty" hidden>No version has been published yet.</p>
+      <p class="dl-note">Installs a new PC, or upgrades the installed app. Settings, meeting ID, images, schedule and the pairing with this website are kept.</p>
     </section>
-    <section class="card">
-      <div class="card-head"><h2>Already installed? Upgrade</h2></div>
-      <ol class="steps-list">
-        <li><strong>Easiest:</strong> in the app open the <strong>Update</strong> tab → <strong>Download &amp; install</strong> (version 2.2.0 and later; it also checks for new versions by itself).</li>
-        <li><strong>Or:</strong> download the <strong>Installer</strong> above and run it on the PC. It upgrades the installed version in place.</li>
-        <li>Your settings, meeting ID, image folder, schedule and the pairing with this website are kept.</li>
-        <li>Portable version: download the new portable exe and use it instead of the old one.</li>
-      </ol>
+
+    <section class="card" id="dl-notes-card" hidden>
+      <div class="card-head"><h2>What's new</h2></div>
+      <ul class="dl-notes" id="dl-notes"></ul>
     </section>
+
     <section class="card">
-      <div class="card-head"><h2>First install</h2></div>
-      <ol class="steps-list">
-        <li>Run the <strong>Installer</strong>. If Windows shows "Windows protected your PC", click <strong>More info → Run anyway</strong> (the installer is not code-signed).</li>
-        <li>To control the PC from here, the owner opens <strong>Admin → Add a PC</strong> and types the code in the app's <strong>Remote</strong> tab.</li>
+      <div class="card-head"><h2>Install or upgrade in 3 steps</h2></div>
+      <ol class="dl-steps">
+        <li><span class="dl-num">1</span><div><strong>Download</strong> the installer on the stream PC.</div></li>
+        <li><span class="dl-num">2</span><div><strong>Run it.</strong> If Windows shows "Windows protected your PC", click <em>More info → Run anyway</em> (the installer is not code-signed).</div></li>
+        <li><span class="dl-num">3</span><div><strong>Done.</strong> The app starts and keeps running in the tray. New PC? The owner opens <em>Admin → Add a PC</em> and types the code in the app's Remote tab.</div></li>
       </ol>
+      <p class="muted small dl-tip">Already on version 2.2.0 or later? Easier: in the app open <strong>Update → Download &amp; install</strong>. The app also checks for new versions by itself.</p>
+    </section>
+
+    <section class="dl-features">
+      <div class="dl-feature"><span class="dl-ico">🎥</span><strong>Zoom → YouTube live</strong><span class="muted small">Starts the meeting, goes live on today's stream, shares the image.</span></div>
+      <div class="dl-feature"><span class="dl-ico">📱</span><strong>Phone control</strong><span class="muted small">Start, end, share and watch the PC screen from this website.</span></div>
+      <div class="dl-feature"><span class="dl-ico">🔕</span><strong>Runs in the background</strong><span class="muted small">Starts with Windows and stays in the tray, always reachable.</span></div>
+      <div class="dl-feature"><span class="dl-ico">⏰</span><strong>Daily schedule</strong><span class="muted small">Goes live by itself at the set time every day.</span></div>
     </section>
   </main>
 

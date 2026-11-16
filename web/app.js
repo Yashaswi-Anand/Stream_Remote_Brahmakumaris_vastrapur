@@ -641,52 +641,62 @@ document.addEventListener('visibilitychange', () => {
 
 // ---- Download page ---------------------------------------------------------------------------
 
-const KIND_TEXT = {
-  setup: ['Installer (recommended)', 'Installs, or upgrades the installed version.'],
-  portable: ['Portable', 'Runs without installing.'],
-};
-const INSTALLER_RE = /^Zoom-Stream-Automation-(Setup|Portable)-(\d+\.\d+\.\d+)\.exe$/;
+const INSTALLER_RE = /^Zoom-Stream-Automation-Setup-(\d+\.\d+\.\d+)\.exe$/;
 const sizeText = (bytes) => `${(bytes / 1048576).toFixed(0)} MB`;
+const plain = (t) => String(t).replace(/\*\*|`/g, '').trim();
+
+/** "What's new": the bullet lines of the release notes (plain text only). */
+function releaseBullets(body) {
+  const lines = String(body || '').split(/\r?\n/);
+  const start = lines.findIndex((l) => /new in/i.test(l));
+  return lines
+    .slice(start >= 0 ? start + 1 : 0)
+    .filter((l) => /^\s*[-*]\s+/.test(l))
+    .map((l) => plain(l.replace(/^\s*[-*]\s+/, '')))
+    .filter(Boolean)
+    .slice(0, 6);
+}
 
 async function loadDownloads() {
-  $('dl-rows').replaceChildren();
-  $('dl-version').textContent = '…';
-  $('dl-empty').hidden = true;
-  $('dl-published').textContent = '';
+  const show = (id, on) => ($(id).hidden = !on);
+  $('dl-version').textContent = 'Checking…';
+  ['dl-size', 'dl-date', 'dl-button', 'dl-empty', 'dl-notes-card'].forEach((id) => show(id, false));
+  $('dl-file').textContent = '';
   const repo = S.cfg.githubRepo;
   try {
-    if (!/^[\w.-]+\/[\w.-]+$/.test(repo || '')) throw new Error('No GitHub repository is set in config.json.');
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo || '')) throw new Error('No download source is set in config.json.');
     const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
     if (res.status === 404) {
-      $('dl-version').textContent = '—';
-      $('dl-empty').hidden = false;
+      $('dl-version').textContent = 'Not published';
+      show('dl-empty', true);
       return;
     }
-    if (!res.ok) throw new Error(`GitHub answered ${res.status}. Try again later.`);
+    if (!res.ok) throw new Error(`The download server answered ${res.status}. Try again later.`);
     const rel = await res.json();
-    const files = (rel.assets || [])
+    const setup = (rel.assets || [])
       .map((a) => ({ a, m: a.name.match(INSTALLER_RE) }))
-      .filter((x) => x.m && /^https:\/\/github\.com\//.test(x.a.browser_download_url))
-      .map(({ a, m }) => ({ kind: m[1].toLowerCase(), version: m[2], name: a.name, size: a.size, url: a.browser_download_url }))
-      .sort((x, y) => (x.kind === 'setup' ? -1 : 1) - (y.kind === 'setup' ? -1 : 1));
-    $('dl-version').textContent = files[0] ? `Latest: v${files[0].version}` : rel.tag_name || '—';
-    $('dl-empty').hidden = files.length > 0;
-    $('dl-rows').replaceChildren(
-      ...files.map((f) => {
-        const [label, note] = KIND_TEXT[f.kind] || ['Download', ''];
-        return el(
-          'tr',
-          {},
-          el('td', {}, el('strong', {}, label), el('span', { class: 'muted small block' }, note)),
-          el('td', {}, `v${f.version}`),
-          el('td', {}, sizeText(f.size)),
-          el('td', {}, el('a', { class: `btn small${f.kind === 'setup' ? ' primary' : ''}`, href: f.url, rel: 'noopener' }, 'Download')),
-        );
-      }),
-    );
-    if (rel.published_at) $('dl-published').textContent = `Published ${timeText(rel.published_at)} on GitHub.`;
+      .find((x) => x.m && /^https:\/\/github\.com\//.test(x.a.browser_download_url));
+    if (!setup) {
+      $('dl-version').textContent = rel.tag_name || 'Not published';
+      show('dl-empty', true);
+      return;
+    }
+    $('dl-version').textContent = `Version ${setup.m[1]}`;
+    $('dl-size').textContent = sizeText(setup.a.size);
+    show('dl-size', true);
+    if (rel.published_at) {
+      $('dl-date').textContent = `Published ${new Date(rel.published_at).toLocaleDateString([], { dateStyle: 'medium' })}`;
+      show('dl-date', true);
+    }
+    $('dl-button').href = setup.a.browser_download_url;
+    $('dl-button').querySelector('span').textContent = `Download installer · v${setup.m[1]}`;
+    show('dl-button', true);
+    $('dl-file').textContent = setup.a.name;
+    const notes = releaseBullets(rel.body);
+    $('dl-notes').replaceChildren(...notes.map((n) => el('li', {}, n)));
+    show('dl-notes-card', notes.length > 0);
   } catch (err) {
-    $('dl-version').textContent = '—';
+    $('dl-version').textContent = 'Unavailable';
     toast(niceError(err), '', 'error');
   }
 }

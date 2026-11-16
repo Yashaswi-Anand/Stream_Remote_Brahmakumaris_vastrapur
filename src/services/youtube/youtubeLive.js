@@ -33,6 +33,8 @@ const LABELS = {
   create: ['^Create$'],
   goLiveMenu: ['^Go live$'],
   goLiveButton: ['^Go live$', '^GO LIVE$', '^Go Live$'],
+  // Studio's list of scheduled streams (Live Control Room → Manage), where today's stream is listed.
+  manage: ['^Manage$'],
 };
 
 /**
@@ -120,6 +122,9 @@ class YouTubeLiveService {
     ].filter((s) => s.patterns);
     let next = 0;
     let lastSeen = [];
+    let todayMisses = 0;
+    let accountMisses = 0;
+    let manageOpened = false;
 
     const deadline = Date.now() + timeoutMinutes * 60000;
     let goLiveClicked = false;
@@ -145,7 +150,7 @@ class YouTubeLiveService {
       if (step && step.id !== 'account') {
         let res = await this.clickInBrowser(step.patterns);
         const following = steps[next + 1];
-        if (res.clicked && following && step.id !== 'today') {
+        if (res.clicked && following) {
           // Check the click took effect (the next step's text appears); otherwise click again for real.
           await sleep(2000);
           const seenNext = await this.findInBrowser(following.patterns);
@@ -165,10 +170,25 @@ class YouTubeLiveService {
           continue;
         }
         lastSeen = res.seen || [];
-        onWaiting?.(`Waiting for "${step.label}" in the browser. Complete any sign-in or consent screen yourself.`);
+        // Today's stream not on screen: open Studio's list of scheduled streams (only today's date is ever chosen).
+        if (step.id === 'today' && !manageOpened && ++todayMisses >= 3) {
+          const manage = await this.clickInBrowser(LABELS.manage);
+          if (manage.clicked) {
+            manageOpened = true;
+            this.logger.info('youtube', "Opened Manage (scheduled streams) to find today's stream.");
+            await sleep(2500);
+            continue;
+          }
+        }
+        onWaiting?.(
+          step.id === 'today'
+            ? "Looking for today's scheduled stream in YouTube Studio (another day is never selected)…"
+            : `Waiting for "${step.label}" in the browser. Complete any sign-in or consent screen yourself.`,
+        );
       } else if (step && step.id === 'account' && studioOpen) {
-        // Already signed in: move on once today's stream is visible on the Studio live page.
-        if (await this.findInBrowser(todayPatterns())) {
+        // Already signed in: move on once today's stream is visible, or after a few checks (it may be under
+        // Manage, which the next step opens). The account chooser, if it appears later, is still clicked above.
+        if ((await this.findInBrowser(todayPatterns())) || ++accountMisses >= 2) {
           next = steps.findIndex((s) => s.id === 'today');
           continue;
         }

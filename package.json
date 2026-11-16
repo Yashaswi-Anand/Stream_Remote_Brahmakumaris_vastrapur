@@ -1,7 +1,7 @@
 {
   "name": "zoom-stream-automation",
   "productName": "Zoom Stream Automation",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Automates Zoom meetings, YouTube live streaming, image sharing and screen sharing on Windows.",
   "author": "Zoom Stream Automation",
   "license": "UNLICENSED",
@@ -11,9 +11,7 @@
     "start": "npm run build:renderer && electron .",
     "build:renderer": "vite build",
     "test": "node --test \"tests/*.test.js\"",
-    "dist": "npm run build:renderer && electron-builder --win nsis portable --x64",
-    "dist:installer": "npm run build:renderer && electron-builder --win nsis --x64",
-    "dist:portable": "npm run build:renderer && electron-builder --win portable --x64",
+    "dist": "npm run build:renderer && electron-builder --win nsis --x64",
     "rules": "node firebase/build-rules.js",
     "test:firebase": "node firebase/test-emulators.js",
     "web:local": "node firebase/local.js",
@@ -53,8 +51,7 @@
     ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
       "icon": "build/icon.png",
       "requestedExecutionLevel": "asInvoker"

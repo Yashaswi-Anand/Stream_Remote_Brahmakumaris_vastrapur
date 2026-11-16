@@ -71,3 +71,56 @@ test('Studio opens in the signed-in profile before Zoom starts the YouTube strea
   assert.deepEqual(order, ['zoom:live-on-youtube']);
   assert.ok(logs.some((m) => /No Chrome or Edge profile is signed in as other@gmail.com/.test(m)));
 });
+
+/** A fake browser page for the Studio steps: which texts are on screen, and what each click does. */
+function fakeStudio({ listDate }) {
+  const page = { view: 'control-room', live: false, clicks: [] };
+  const texts = () =>
+    page.view === 'control-room' ? ['Manage', 'Stream'] : page.view === 'manage' ? ['Manage', listDate] : page.view === 'stream' ? ['Go live', 'Manage'] : [];
+  const match = (patterns) => texts().find((t) => patterns.some((p) => new RegExp(p, 'i').test(t)));
+  const zoom = {
+    isLive: async () => page.live,
+    startYouTubeLive: async () => {},
+    clickGoLiveInBrowser: async () => false,
+    uia: { call: async (cmd) => (cmd === 'windows' ? { windows: [{ hwnd: 1, title: 'Live streaming - YouTube Studio', rect: [0, 0, 1200, 800] }] } : {}) },
+    findText: async ({ patterns }) => ({ found: !!match(patterns) }),
+    clickText: async ({ patterns }) => {
+      const t = match(patterns);
+      if (!t) return { clicked: false, seen: texts() };
+      page.clicks.push(t);
+      if (t === 'Manage') page.view = 'manage';
+      else if (t === listDate) page.view = 'stream';
+      else if (t === 'Go live') page.live = true;
+      return { clicked: true, text: t };
+    },
+  };
+  return { page, zoom };
+}
+
+const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+test("YouTube Studio: opens Manage, selects only today's stream and clicks Go live", async () => {
+  const realSetTimeout = global.setTimeout;
+  global.setTimeout = (fn) => realSetTimeout(fn, 0);
+  try {
+    const { page, zoom } = fakeStudio({ listDate: fmt(new Date()) });
+    const profiles = { findProfile: () => ({ browser: 'Chrome', exe: 'c', profileDir: 'P', profileName: 'BK' }), openInProfile: () => {} };
+    const yt = new YouTubeLiveService({ zoom, logger: { info() {}, warn() {} }, profiles });
+    const res = await yt.start({}, { accountEmail: 'bkmvastrapur@gmail.com', studioUrl: STUDIO, timeoutMinutes: 1, isCancelled: () => false, isManuallyConfirmed: () => false });
+    assert.equal(res.verified, true);
+    assert.deepEqual(page.clicks, ['Manage', fmt(new Date()), 'Go live']);
+
+    // Only tomorrow's stream is scheduled: it is never selected.
+    const tomorrow = new Date(Date.now() + 86400000);
+    const t2 = fakeStudio({ listDate: fmt(tomorrow) });
+    const yt2 = new YouTubeLiveService({ zoom: t2.zoom, logger: { info() {}, warn() {} }, profiles });
+    await assert.rejects(
+      () => yt2.start({}, { accountEmail: 'bkmvastrapur@gmail.com', studioUrl: STUDIO, timeoutMinutes: 0.002, isCancelled: () => false, isManuallyConfirmed: () => false }),
+      /No YouTube stream scheduled for today/,
+    );
+    assert.equal(t2.page.clicks.includes(fmt(tomorrow)), false);
+    assert.equal(t2.page.live, false);
+  } finally {
+    global.setTimeout = realSetTimeout;
+  }
+});
