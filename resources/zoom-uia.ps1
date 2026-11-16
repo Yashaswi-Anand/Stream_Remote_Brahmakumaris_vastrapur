@@ -26,6 +26,9 @@ public static class ZsaWin32 {
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);
+  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint x, uint y, uint d, UIntPtr e);
   [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint f, UIntPtr e);
@@ -71,7 +74,32 @@ public static class ZsaWin32 {
     // A synthetic Alt tap lets a background process move the foreground window.
     keybd_event(0x12, 0, 0, UIntPtr.Zero);
     keybd_event(0x12, 0, 2, UIntPtr.Zero);
-    return SetForegroundWindow(h);
+    SetForegroundWindow(h);
+    if (GetForegroundWindow() != h) {
+      // Windows refused (another app, e.g. a browser, was just opened): join its input queue and try again.
+      uint pid;
+      uint fg = GetWindowThreadProcessId(GetForegroundWindow(), out pid);
+      uint me = GetCurrentThreadId();
+      bool attached = fg != 0 && fg != me && AttachThreadInput(me, fg, true);
+      BringWindowToTop(h);
+      SetForegroundWindow(h);
+      if (attached) AttachThreadInput(me, fg, false);
+    }
+    // Always raise it above other windows (allowed even when focus is refused), so what is read on screen is this window.
+    const uint flags = 0x0001 | 0x0002 | 0x0040; // NOSIZE | NOMOVE | SHOWWINDOW
+    SetWindowPos(h, new IntPtr(-1), 0, 0, 0, 0, flags); // topmost
+    SetWindowPos(h, new IntPtr(-2), 0, 0, 0, 0, flags); // back to normal, staying on top
+    return GetForegroundWindow() == h;
+  }
+
+  /** Mouse wheel over a point (negative = scroll down); the pointer is put straight back. */
+  public static void Wheel(int x, int y, int clicks) {
+    POINT before; GetCursorPos(out before);
+    SetCursorPos(x, y);
+    System.Threading.Thread.Sleep(60);
+    mouse_event(0x0800, 0, 0, (uint)(clicks * 120), UIntPtr.Zero);
+    System.Threading.Thread.Sleep(120);
+    SetCursorPos(before.X, before.Y);
   }
 
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
@@ -349,6 +377,19 @@ function Cmd-Focus($a) {
   return @{ focused = $ok; moved = $moved; hwnd = $w.Hwnd; title = $w.Title; cls = $w.Cls }
 }
 
+function Cmd-Scroll($a) {
+  # Scrolls inside a window at a relative point (fx, fy), e.g. Zoom's share dialog list.
+  $wins = Get-ScopeWindows $a
+  if ($wins.Count -eq 0) { return @{ scrolled = $false } }
+  $w = $wins[0]
+  [ZsaWin32]::Focus([IntPtr]$w.Hwnd) | Out-Null
+  $fx = if ($null -ne $a.fx) { [double]$a.fx } else { 0.4 }
+  $fy = if ($null -ne $a.fy) { [double]$a.fy } else { 0.5 }
+  $x = [int]($w.Left + ($w.Right - $w.Left) * $fx); $y = [int]($w.Top + ($w.Bottom - $w.Top) * $fy)
+  [ZsaWin32]::Wheel($x, $y, [int]$a.clicks)
+  return @{ scrolled = $true }
+}
+
 function Cmd-Keys($a) {
   $f = Cmd-Focus $a
   if (-not $f.hwnd) { return @{ sent = $false } }
@@ -588,6 +629,7 @@ function Invoke-Request($req) {
     'click' { return Cmd-Click $a }
     'toggle' { return Cmd-Toggle $a }
     'focus' { return Cmd-Focus $a }
+    'scroll' { return Cmd-Scroll $a }
     'keys' { return Cmd-Keys $a }
     'names' { return Cmd-Names $a }
     'dump' { return Cmd-Dump $a }

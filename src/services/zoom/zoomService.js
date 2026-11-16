@@ -468,9 +468,19 @@ class ZoomService {
     const L = this.labels;
     const dialog = await this.openShareDialog(meeting);
     const close = () => this.uia.call('close', { hwnd: dialog.hwnd }).catch(() => {});
+    await this.uia.call('focus', { scope: 'zoom', hwnd: dialog.hwnd }).catch(() => {});
     // Tiles are labelled with the screen or window title; the options panel on the right is excluded.
-    const tile = await this.clickText({ hwnd: dialog.hwnd, region: [0, 0.12, 0.74, 0.95], patterns: tilePatterns, timeoutMs: 5000 });
+    const region = [0, 0.12, 0.74, 0.95];
+    let tile = await this.clickText({ hwnd: dialog.hwnd, region, patterns: tilePatterns, timeoutMs: 5000 });
+    // With many windows open (e.g. browser windows), the tile can be further down the list: scroll and look again.
+    for (let i = 0; !tile.clicked && i < 4; i++) {
+      await this.uia.call('scroll', { scope: 'zoom', hwnd: dialog.hwnd, fx: 0.37, fy: 0.55, clicks: -3 }).catch(() => {});
+      await sleep(700);
+      tile = await this.clickText({ hwnd: dialog.hwnd, region, patterns: tilePatterns, timeoutMs: 1500 });
+      if (tile.clicked) this.logger.info('zoom', `Found "${sourceLabel}" after scrolling the share dialog.`);
+    }
     if (!tile.clicked) {
+      this.logger.warn('zoom', `Share dialog text seen: ${(tile.seen || []).join(' | ').slice(0, 300) || '(none)'}`);
       await close();
       throw new AutomationError(`Could not find "${sourceLabel}" in Zoom's share dialog.`, 'The window may be hidden or listed further down. Keep it open and visible, then try again.');
     }

@@ -107,6 +107,8 @@ class YouTubeLiveService {
     }
 
     const studioOpen = await this.openStudio(accountEmail, studioUrl, onWaiting);
+    // The browser window just opened on top: bring the Zoom meeting back to the front before using its toolbar.
+    if (studioOpen) await Promise.resolve(this.zoom.showMeeting?.(meeting)).catch(() => {});
     await this.zoom.startYouTubeLive(meeting);
     this.logger.info('youtube', 'Selected "Live on YouTube" in Zoom. Waiting for the browser.');
     onWaiting?.('Waiting for YouTube in the browser…');

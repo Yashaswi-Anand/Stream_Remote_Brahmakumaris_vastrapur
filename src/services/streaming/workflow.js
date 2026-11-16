@@ -190,6 +190,8 @@ class StreamWorkflow {
       });
 
       if (shareImage) {
+        // YouTube's pages are open in the browser now: bring the meeting back to the front first.
+        if (goLive) await this.zoom.showMeeting(meeting).catch(() => {});
         const image = await this.runStep('image', async () => this.previewedImage());
         this.setStep('image', 'done', path.basename(image));
         await this.runStep('share', async () => this.shareImageInMeeting(meeting, image));
