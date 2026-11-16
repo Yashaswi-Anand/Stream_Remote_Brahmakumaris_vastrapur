@@ -1,6 +1,7 @@
 'use strict';
 
 const { AutomationError } = require('../zoom/zoomService');
+const { findProfile, openInProfile, STUDIO_URL_RE } = require('./browserProfile');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -36,6 +37,8 @@ const LABELS = {
 
 /**
  * Drives the YouTube side after Zoom's "Live on YouTube":
+ *   0. With a YouTube Studio live link set: open it first in the browser profile already signed in to the
+ *      stream's Google account (no sign-in / 2-step verification), which also makes Zoom's page open there.
  *   1. Google account chooser: click the configured account (e.g. bkmvastrapur@gmail.com) if it is shown.
  *   2. YouTube Studio: Create → Go live.
  *   3. Select today's scheduled stream (only today's date; never another day).
@@ -45,9 +48,30 @@ const LABELS = {
  * The stream is reported live only after Zoom's own live indicator appears, or the user confirms it.
  */
 class YouTubeLiveService {
-  constructor({ zoom, logger }) {
+  constructor({ zoom, logger, profiles = { findProfile, openInProfile } }) {
     this.zoom = zoom;
     this.logger = logger;
+    this.profiles = profiles;
+  }
+
+  /** Opens the channel's Studio live page in the signed-in browser profile. Returns true when it did. */
+  async openStudio(accountEmail, studioUrl, onWaiting) {
+    if (!studioUrl || !STUDIO_URL_RE.test(studioUrl)) return false;
+    const profile = this.profiles.findProfile(accountEmail);
+    if (!profile) {
+      this.logger.warn('youtube', `No Chrome or Edge profile is signed in as ${accountEmail || '(no account set)'}; using the default browser (it may ask you to sign in).`);
+      return false;
+    }
+    try {
+      this.profiles.openInProfile(profile, studioUrl);
+    } catch (err) {
+      this.logger.warn('youtube', `Could not open YouTube Studio in ${profile.browser}: ${err.message}`);
+      return false;
+    }
+    this.logger.info('youtube', `Opened YouTube Studio in ${profile.browser} profile "${profile.profileName}" (${accountEmail}), already signed in.`);
+    onWaiting?.(`Opened YouTube Studio in ${profile.browser} (${accountEmail})…`);
+    await sleep(5000);
+    return true;
   }
 
   /** The browser window to work in: the first visible one whose title mentions YouTube/Google/Zoom. */
@@ -74,21 +98,23 @@ class YouTubeLiveService {
     return !!res.found;
   }
 
-  async start(meeting, { autoClickGoLive, accountEmail, timeoutMinutes, onWaiting, isCancelled, isManuallyConfirmed }) {
+  async start(meeting, { autoClickGoLive, accountEmail, studioUrl, timeoutMinutes, onWaiting, isCancelled, isManuallyConfirmed }) {
     if (await this.zoom.isLive(meeting)) {
       this.logger.info('youtube', 'Zoom already reports an active live stream.');
       return { verified: true, method: 'already-live' };
     }
 
+    const studioOpen = await this.openStudio(accountEmail, studioUrl, onWaiting);
     await this.zoom.startYouTubeLive(meeting);
     this.logger.info('youtube', 'Selected "Live on YouTube" in Zoom. Waiting for the browser.');
     onWaiting?.('Waiting for YouTube in the browser…');
 
     // Browser steps run in order; each is retried on every pass until it is done.
+    // With the Studio live page already open, "Create → Go live" is not needed.
     const steps = [
       { id: 'account', label: accountEmail ? `Choose account ${accountEmail}` : null, optional: true, patterns: accountEmail ? [escapeRe(accountEmail)] : null },
-      { id: 'create', label: 'YouTube Studio: Create', patterns: LABELS.create },
-      { id: 'menu', label: 'Create → Go live', patterns: LABELS.goLiveMenu },
+      { id: 'create', label: 'YouTube Studio: Create', patterns: studioOpen ? null : LABELS.create },
+      { id: 'menu', label: 'Create → Go live', patterns: studioOpen ? null : LABELS.goLiveMenu },
       { id: 'today', label: "Select today's stream", patterns: todayPatterns() },
       { id: 'golive', label: 'Go live', patterns: LABELS.goLiveButton },
     ].filter((s) => s.patterns);
@@ -140,6 +166,13 @@ class YouTubeLiveService {
         }
         lastSeen = res.seen || [];
         onWaiting?.(`Waiting for "${step.label}" in the browser. Complete any sign-in or consent screen yourself.`);
+      } else if (step && step.id === 'account' && studioOpen) {
+        // Already signed in: move on once today's stream is visible on the Studio live page.
+        if (await this.findInBrowser(todayPatterns())) {
+          next = steps.findIndex((s) => s.id === 'today');
+          continue;
+        }
+        onWaiting?.("Waiting for today's stream on the YouTube Studio live page…");
       } else if (step && step.id === 'account') {
         // Account chooser not shown (yet): move on once YouTube Studio's Create button is visible.
         const create = await this.clickInBrowser(LABELS.create);

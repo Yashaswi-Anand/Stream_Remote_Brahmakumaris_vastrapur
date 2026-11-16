@@ -162,6 +162,7 @@ class StreamWorkflow {
         const res = await this.youtube.start(meeting, {
           autoClickGoLive: this.settings.autoClickGoLive,
           accountEmail: this.settings.youtubeAccountEmail,
+          studioUrl: this.settings.youtubeStudioUrl,
           timeoutMinutes: this.settings.liveConfirmTimeoutMinutes,
           onWaiting: (msg) => {
             this.state.waitingForUser = true;

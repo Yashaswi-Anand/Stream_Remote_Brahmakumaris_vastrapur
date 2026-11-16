@@ -436,6 +436,10 @@ function ScheduleCard({ schedule, settings, power, act, pending, onEdit, onDelet
 function SettingsCard({ settings, act }) {
   const [link, setLink] = useState(settings.meetingLink);
   const [email, setEmail] = useState(settings.youtubeAccountEmail);
+  const [studio, setStudio] = useState(settings.youtubeStudioUrl);
+  useEffect(() => setStudio(settings.youtubeStudioUrl), [settings.youtubeStudioUrl]);
+  const studioOk = !studio || /^https:\/\/studio\.youtube\.com\/channel\/UC[\w-]{20,24}\/livestreaming\/?$/.test(studio.trim());
+  const prof = settings.youtubeProfile;
   useEffect(() => setLink(settings.meetingLink), [settings.meetingLink]);
   useEffect(() => setEmail(settings.youtubeAccountEmail), [settings.youtubeAccountEmail]);
   const emailOk = !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -457,9 +461,24 @@ function SettingsCard({ settings, act }) {
         <span>YouTube account (Google email)</span>
         <input type="email" value={email} maxLength={254} placeholder="name@gmail.com" onChange={(e) => setEmail(e.target.value)} onBlur={() => emailOk && email !== settings.youtubeAccountEmail && act('updateSettings', { youtubeAccountEmail: email })} />
         {emailOk ? (
-          <small className="muted">If Google asks which account to use, the app clicks this one. Then: YouTube Studio → Create → Go live → today's stream → Go live. Passwords are never entered.</small>
+          <small className="muted">The browser profile signed in to this account is used. If Google still asks which account to use, the app clicks this one. Then: today's stream → Go live. Passwords are never entered.</small>
         ) : (
           <small className="text-danger">Enter a valid email address.</small>
+        )}
+      </label>
+      <label className="field">
+        <span>YouTube Studio live page</span>
+        <input type="url" value={studio} maxLength={200} placeholder="https://studio.youtube.com/channel/UC…/livestreaming" onChange={(e) => setStudio(e.target.value)} onBlur={() => studioOk && studio.trim() !== settings.youtubeStudioUrl && act('updateSettings', { youtubeStudioUrl: studio.trim() })} />
+        {!studioOk ? (
+          <small className="text-danger">Paste the link from YouTube Studio → Go live, like https://studio.youtube.com/channel/UC…/livestreaming</small>
+        ) : prof ? (
+          <small className="muted">
+            Opened in <strong>{prof.browser}</strong> profile <strong>{prof.profileName}</strong>, already signed in as {settings.youtubeAccountEmail}, so no sign-in or 2-step code is needed. Zoom's YouTube page then opens in the same profile.
+          </small>
+        ) : (
+          <small className="text-danger">
+            No Chrome or Edge profile is signed in as {settings.youtubeAccountEmail || 'this account'}. Sign in to that account once in a Chrome profile (Chrome → profile icon → Add), then it is used every time.
+          </small>
         )}
       </label>
       <div className="toggles">

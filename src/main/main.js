@@ -111,6 +111,8 @@ function buildState() {
       openMeetingIfNeeded: c.streaming.openMeetingIfNeeded,
       goLiveOnYouTube: c.streaming.goLiveOnYouTube,
       youtubeAccountEmail: c.streaming.youtubeAccountEmail,
+      youtubeStudioUrl: c.streaming.youtubeStudioUrl,
+      youtubeProfile: youtubeProfileInfo(c.streaming.youtubeAccountEmail),
       shareSound: c.streaming.shareSound,
       shareComputerAudio: c.streaming.shareComputerAudio,
       endMeetingAfterStream: c.streaming.endMeetingAfterStream,
@@ -264,6 +266,25 @@ function createMainWindow({ hidden = false } = {}) {
   if (devUrl) win.loadURL(devUrl);
   else win.loadFile(path.join(__dirname, '..', '..', 'renderer-dist', 'index.html'));
   return win;
+}
+
+// ---- YouTube browser profile ------------------------------------------------------------------
+
+const { findProfile } = require('../services/youtube/browserProfile');
+let profileCache = { email: null, at: 0, value: null };
+
+/** Which Chrome/Edge profile is signed in as the YouTube account (checked at most every 30 s). */
+function youtubeProfileInfo(email) {
+  if (profileCache.email !== email || Date.now() - profileCache.at > 30000) {
+    let p = null;
+    try {
+      p = findProfile(email);
+    } catch {
+      p = null;
+    }
+    profileCache = { email, at: Date.now(), value: p ? { browser: p.browser, profileName: p.profileName } : null };
+  }
+  return profileCache.value;
 }
 
 // ---- System tray (background mode) ---------------------------------------------------------

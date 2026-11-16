@@ -23,6 +23,10 @@ const EDITABLE_SETTINGS = {
   defaultMode: { valid: (v) => MODES.includes(v), set: (c, v) => (c.streaming.defaultMode = v) },
   openMeetingIfNeeded: { valid: isBool, set: (c, v) => (c.streaming.openMeetingIfNeeded = v) },
   goLiveOnYouTube: { valid: isBool, set: (c, v) => (c.streaming.goLiveOnYouTube = v) },
+  youtubeStudioUrl: {
+    valid: (v) => typeof v === 'string' && (v.trim() === '' || /^https:\/\/studio\.youtube\.com\/channel\/UC[\w-]{20,24}\/livestreaming\/?$/.test(v.trim())),
+    set: (c, v) => (c.streaming.youtubeStudioUrl = v.trim()),
+  },
   youtubeAccountEmail: { valid: (v) => typeof v === 'string' && (v.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) && v.length <= 254, set: (c, v) => (c.streaming.youtubeAccountEmail = v.trim()) },
   shareSound: { valid: isBool, set: (c, v) => (c.streaming.shareSound = v) },
   shareComputerAudio: { valid: isBool, set: (c, v) => (c.streaming.shareComputerAudio = v) },

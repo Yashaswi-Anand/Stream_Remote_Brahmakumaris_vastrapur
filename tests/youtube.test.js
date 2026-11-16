@@ -1,0 +1,73 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const path = require('path');
+const { findProfile, openInProfile, STUDIO_URL_RE } = require('../src/services/youtube/browserProfile');
+const { YouTubeLiveService } = require('../src/services/youtube/youtubeLive');
+const { normalizeConfig } = require('../src/services/config/schema');
+
+const env = { LOCALAPPDATA: 'C:\\Users\\u\\AppData\\Local', ProgramFiles: 'C:\\Program Files', 'ProgramFiles(x86)': 'C:\\Program Files (x86)' };
+const chromeExe = path.join('C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe');
+const chromeState = path.join(env.LOCALAPPDATA, 'Google', 'Chrome', 'User Data', 'Local State');
+const STUDIO = 'https://studio.youtube.com/channel/UCMQvoyWj_X4k0SismvF-giw/livestreaming';
+
+test('finds the Chrome profile signed in as the YouTube account (case-insensitive)', () => {
+  const files = {
+    [chromeExe]: '',
+    [chromeState]: JSON.stringify({ profile: { info_cache: { 'Profile 4': { user_name: 'someone@gmail.com', name: 'Work' }, 'Profile 28': { user_name: 'BKMVastrapur@gmail.com', name: 'BK Vastrapur' } } } }),
+  };
+  const io = { env, exists: (f) => f in files, read: (f) => files[f] };
+  assert.deepEqual(findProfile('bkmvastrapur@gmail.com', io), { browser: 'Chrome', exe: chromeExe, profileDir: 'Profile 28', profileName: 'BK Vastrapur' });
+  assert.equal(findProfile('nobody@gmail.com', io), null);
+  assert.equal(findProfile('', io), null);
+  assert.equal(findProfile('bkmvastrapur@gmail.com', { env, exists: () => false, read: () => '' }), null);
+});
+
+test('only YouTube Studio live links are accepted', () => {
+  assert.ok(STUDIO_URL_RE.test(STUDIO));
+  for (const bad of ['http://studio.youtube.com/channel/UCMQvoyWj_X4k0SismvF-giw/livestreaming', 'https://evil.example/channel/UCMQvoyWj_X4k0SismvF-giw/livestreaming', 'https://studio.youtube.com/channel/x/livestreaming', `${STUDIO}?x=1`]) {
+    assert.equal(STUDIO_URL_RE.test(bad), false, bad);
+    assert.throws(() => openInProfile({ exe: 'x', profileDir: 'P' }, bad), /not valid/);
+  }
+  assert.equal(normalizeConfig({ streaming: { youtubeStudioUrl: 'https://evil.example/x' } }, '2.4.0').streaming.youtubeStudioUrl, STUDIO);
+  assert.equal(normalizeConfig({ streaming: { youtubeStudioUrl: '' } }, '2.4.0').streaming.youtubeStudioUrl, '');
+});
+
+test('Studio opens in the signed-in profile before Zoom starts the YouTube stream', async () => {
+  const order = [];
+  const zoom = {
+    isLive: async () => order.includes('zoom:live-on-youtube'),
+    startYouTubeLive: async () => order.push('zoom:live-on-youtube'),
+  };
+  const profiles = {
+    findProfile: (email) => (email === 'bkmvastrapur@gmail.com' ? { browser: 'Chrome', exe: 'chrome.exe', profileDir: 'Profile 28', profileName: 'BK Vastrapur' } : null),
+    openInProfile: (p, url) => order.push(`open:${p.profileDir}:${url}`),
+  };
+  const logs = [];
+  const yt = new YouTubeLiveService({ zoom, logger: { info: (s, m) => logs.push(m), warn: (s, m) => logs.push(m) }, profiles });
+  // Skip the 5 s page-load wait in the test.
+  const realSetTimeout = global.setTimeout;
+  global.setTimeout = (fn) => realSetTimeout(fn, 0);
+  try {
+    const res = await yt.start({}, { accountEmail: 'bkmvastrapur@gmail.com', studioUrl: STUDIO, timeoutMinutes: 1, isCancelled: () => false, isManuallyConfirmed: () => false });
+    assert.equal(res.verified, true);
+  } finally {
+    global.setTimeout = realSetTimeout;
+  }
+  assert.deepEqual(order, [`open:Profile 28:${STUDIO}`, 'zoom:live-on-youtube']);
+  assert.ok(logs.some((m) => /Chrome profile "BK Vastrapur".*already signed in/.test(m)));
+
+  // No matching profile: falls back to the default browser, with a warning.
+  order.length = 0;
+  logs.length = 0;
+  const yt2 = new YouTubeLiveService({ zoom: { ...zoom, isLive: async () => order.includes('zoom:live-on-youtube') }, logger: { info: () => {}, warn: (s, m) => logs.push(m) }, profiles });
+  global.setTimeout = (fn) => realSetTimeout(fn, 0);
+  try {
+    await yt2.start({}, { accountEmail: 'other@gmail.com', studioUrl: STUDIO, timeoutMinutes: 1, isCancelled: () => false, isManuallyConfirmed: () => false });
+  } finally {
+    global.setTimeout = realSetTimeout;
+  }
+  assert.deepEqual(order, ['zoom:live-on-youtube']);
+  assert.ok(logs.some((m) => /No Chrome or Edge profile is signed in as other@gmail.com/.test(m)));
+});

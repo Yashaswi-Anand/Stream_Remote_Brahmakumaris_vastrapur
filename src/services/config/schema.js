@@ -1,5 +1,7 @@
 'use strict';
 
+const STUDIO_URL_RE = /^https:\/\/studio\.youtube\.com\/channel\/UC[\w-]{20,24}\/livestreaming\/?$/;
+
 /** Default configuration. Anything missing or invalid in config.json falls back to these values. */
 function createDefaultConfig(version = '1.0.0') {
   return {
@@ -36,6 +38,8 @@ function createDefaultConfig(version = '1.0.0') {
       autoClickGoLive: true,
       // Google account clicked in the account chooser when YouTube asks which account to use.
       youtubeAccountEmail: 'bkmvastrapur@gmail.com',
+      // The channel's YouTube Studio live page, opened in the browser profile already signed in to that account.
+      youtubeStudioUrl: 'https://studio.youtube.com/channel/UCMQvoyWj_X4k0SismvF-giw/livestreaming',
       liveConfirmTimeoutMinutes: 5,
     },
     schedule: {
@@ -163,6 +167,8 @@ function normalizeConfig(raw, version) {
       defaultMode: oneOf(s.defaultMode, MODES, d.streaming.defaultMode),
       openMeetingIfNeeded: bool(s.openMeetingIfNeeded, d.streaming.openMeetingIfNeeded),
       youtubeAccountEmail: typeof s.youtubeAccountEmail === 'string' ? s.youtubeAccountEmail.trim().slice(0, 254) : d.streaming.youtubeAccountEmail,
+      youtubeStudioUrl:
+        typeof s.youtubeStudioUrl === 'string' && (s.youtubeStudioUrl === '' || STUDIO_URL_RE.test(s.youtubeStudioUrl.trim())) ? s.youtubeStudioUrl.trim() : d.streaming.youtubeStudioUrl,
       goLiveOnYouTube: bool(s.goLiveOnYouTube, d.streaming.goLiveOnYouTube),
       imageFolderPath: str(s.imageFolderPath, ''),
       selectedImagePath: str(s.selectedImagePath, ''),
