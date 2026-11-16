@@ -11,3 +11,7 @@ dist-build/
 server/data/
 server/downloads/
 .claude/settings.local.json
+
+# Firebase CLI cache and emulator logs
+.firebase/
+*-debug.log

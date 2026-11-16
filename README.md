@@ -4,7 +4,7 @@ A Windows desktop app (Electron + React + Node.js) that automates a Zoom → You
 open Zoom, join your meeting, start **Live on YouTube**, share a random image (with sound) and
 switch to screen sharing with computer audio. It can also start everything on a schedule.
 
-Everything runs locally on the stream PC. Settings live in one JSON file. Version 2.0 adds an optional **remote control website** (`server/`) so the stream can be run from a phone; see [Remote control website](#remote-control-website).
+Everything runs locally on the stream PC. Settings live in one JSON file. Version 2.0 added an optional **remote control website** so the stream can be run from a phone; since 2.1 it runs on Firebase (`web/`). See [Remote control website](#remote-control-website).
 
 ---
 
@@ -12,8 +12,8 @@ Everything runs locally on the stream PC. Settings live in one JSON file. Versio
 
 | File | Use it when |
 | --- | --- |
-| `dist/Zoom-Stream-Automation-Setup-2.0.1.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
-| `dist/Zoom-Stream-Automation-Portable-2.0.1.exe` | Run without installing (e.g. from a USB stick). Schedules point at the exe's current location, so don't move it after saving a schedule. |
+| `dist/Zoom-Stream-Automation-Setup-2.1.0.exe` | Normal install (Start-menu entry, uninstaller, per-user, no admin needed). **Recommended**, and required if you use schedules on a regular basis. |
+| `dist/Zoom-Stream-Automation-Portable-2.1.0.exe` | Run without installing (e.g. from a USB stick). Schedules point at the exe's current location, so don't move it after saving a schedule. |
 
 Copy either file to another Windows 10/11 (64-bit) PC and run it. No source code, Node.js or other runtime is needed.
 The builds are not code-signed, so Windows SmartScreen may show "Windows protected your PC". Click **More info → Run anyway**.
@@ -56,13 +56,14 @@ Sets up the PC to **switch itself on from Shut down** at the stream time, using 
 ### Remote tab
 - Pairs this PC with your remote control website. On the website (signed in as the owner) open **Admin → Add a PC**, then type the website address and the 8-character code here.
 - **Allow remote control** switches the connection on/off. **Unpair this PC** removes it. A notice appears while someone on the website is viewing this PC's screen.
-- The PC only connects *out* to the website; nothing on the PC is opened to the internet. Its access key is stored encrypted by Windows (`remote-device.bin` in the settings folder), never in `config.json`.
+- The PC only connects *out* to the website's Firebase database; nothing on the PC is opened to the internet. Each paired PC has its own anonymous Firebase sign-in. Its key is stored encrypted by Windows (`remote-device.bin` in the settings folder), never in `config.json`.
+- PCs paired with 2.0.x (the old Node.js website) must be paired again with the Firebase website.
 
 ### Update tab
 - Shows the installed version and, once a **release manifest URL** is set, the latest version and its release notes. Without a URL, it says update checking is unavailable.
 - Manifest format (served over HTTPS):
   ```json
-  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.0.1.exe", "publishedAt": "2026-11-01" }
+  { "version": "1.7.0", "releaseNotes": "What changed…", "downloadUrl": "https://…/Zoom-Stream-Automation-Setup-2.1.0.exe", "publishedAt": "2026-11-01" }
   ```
 - **Uninstall** opens the Windows uninstaller after you confirm. Nothing is removed until you confirm in the uninstaller. Tick *Also delete my settings…* to remove the settings folder as well. The uninstaller always removes the app's scheduled task and Windows sign-in entry; upgrades keep them. The portable build has no uninstaller: use **Remove schedule & startup entry**, then delete the exe.
 
@@ -70,23 +71,33 @@ Sets up the PC to **switch itself on from Shut down** at the stream time, using 
 
 ## Remote control website
 
-`server/` is a small Node.js website (no build step) that the client opens on a phone:
+`web/` is **Stream Remote**, the website the client opens on a phone. It runs on **Firebase** (Hosting, Authentication and Realtime Database), free on the Spark plan, with no server to maintain. **[FIREBASE_SETUP.md](FIREBASE_SETUP.md)** has the step-by-step setup.
 
-- **Sign-in** with Owner and Client roles. The owner is created once with a setup code; others get a one-time invite link and set their own password. Passwords are stored only as scrypt hashes; sessions use HttpOnly, SameSite=Strict cookies; sign-in attempts are rate limited.
-- **Controls** (same rules as the app window): Start Stream, End Stream (with confirmation), Cancel, I'm live, Share Image / Screen / Stop, choose or randomize the image (with preview), daily schedule time and on/off, Open Zoom meeting, step-by-step progress and the PC's activity log.
-- **Live screen**: the PC sends about one compressed frame every 1.5 s, only while someone has the view open.
-- **Admin** (owner): pair and remove PCs, invite and remove people, change password, and a "who did what" log of every command.
-- **Download** (signed-in people): the newest `Zoom-Stream-Automation-Setup-X.Y.Z.exe` and `…-Portable-X.Y.Z.exe` found in the downloads folder (`DOWNLOADS_DIR`, default `server/downloads`; locally `server/.env` points it at `dist/`). Only those two files are served, and each download is logged. On the live server, upload new installers to that folder (they are too large for GitHub).
+- **Sign-in** with Owner and Client roles (Firebase Authentication, email + password, "Forgot password?" by email).
+  - The owner account is created once with a setup code stored in the database's `secrets/setupCode`.
+  - Others join with a one-time invite link (7 days) tied to their email.
+- **Controls** follow the same rules as the app window:
+  - Start Stream, End Stream (with confirmation), Cancel, I'm live
+  - Share Image / Screen / Stop
+  - choose or randomize the image (with preview)
+  - daily schedule time and on/off
+  - Open Zoom meeting
+  - step-by-step progress and the PC's activity log
+- **Live screen**: the PC sends a 960 px frame every 2 s, only while someone has the view open.
+- **Admin** (owner): pair and remove PCs, invite and remove people, change password, and a "who did what" log.
+- **Download**: the newest installer and portable exe from the GitHub repository's latest release.
+- **Security** is enforced by [`database.rules.json`](database.rules.json), generated from [`firebase/build-rules.js`](firebase/build-rules.js), not by the page:
+  - Only people with a role can read anything.
+  - Only paired PCs write their own status.
+  - Button presses are checked (allowed actions and values, the sender's own email, the server time).
+  - Removing a person or PC takes effect at once.
+  - The rules are tested against the Firebase emulators (`npm run test:firebase`).
 
-Run it locally on the stream PC (for testing on the same Wi-Fi):
+Test it on this PC without a Firebase project, using the emulators (Java needed). The website is at `http://localhost:5555`, the setup code is `LOCAL-SETUP-CODE`, and the data is wiped when it stops:
 
+```bash
+npm run web:local
 ```
-cd server
-npm install
-npm start
-```
-
-Open the address it prints (e.g. `http://localhost:8787`, or `http://<PC-IP>:8787` from a phone on the same Wi-Fi). Without `DB_HOST` it stores data in `server/data/db.json`; on the live server set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` (MySQL), `SETUP_CODE`, `PUBLIC_URL` and `REQUIRE_HTTPS=true` as environment variables (see `server/.env.example`). The internet address must be `https://`; the desktop app accepts plain `http://` only for local-network addresses.
 
 ## How the automation works (and what stays manual)
 
@@ -221,7 +232,7 @@ npm run dist
 ```
 src/main/            Electron main process: lifecycle, IPC (validated), image window
 src/preload/         contextBridge API, the only thing the UI can call
-src/renderer/        React UI (Home, Update tabs)
+src/renderer/        React UI (Home, Auto Power On, Remote, Update tabs)
 src/services/
   config/            JSON schema, defaults, atomic store
   logging/           activity log + rotating file log
@@ -233,7 +244,11 @@ src/services/
   updates/           manifest check, version compare
 resources/zoom-uia.ps1  Windows UI Automation helper
 build/               icon, NSIS uninstall hooks
-tests/               node:test unit tests
+tests/               node:test unit tests (tests/firebase: emulator tests)
+web/                 Stream Remote website (Firebase Hosting)
+firebase/            database rules builder, emulator runners
+database.rules.json  Realtime Database security rules (generated)
+firebase.json        Firebase Hosting / Database / emulator settings
 ```
 
 ### Security

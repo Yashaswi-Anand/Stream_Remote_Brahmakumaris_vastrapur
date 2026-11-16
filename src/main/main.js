@@ -434,15 +434,19 @@ function remoteTokenStore() {
   };
 }
 
-/** One frame of the main screen as JPEG, at most 1280 px wide. */
+/**
+ * One frame of the main screen as JPEG, at most 960 px wide. Kept small because every frame is downloaded
+ * by the phone through Firebase (the free plan includes 10 GB of downloads a month).
+ */
 async function captureScreenJpeg() {
   const primary = screen.getPrimaryDisplay();
   const { width, height } = primary.size;
-  const scale = Math.min(1, 1280 / width);
+  const scale = Math.min(1, 960 / width);
   const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(width * scale), height: Math.round(height * scale) } });
   const src = sources.find((x) => x.display_id === String(primary.id)) || sources[0];
   if (!src || src.thumbnail.isEmpty()) return null;
-  return src.thumbnail.toJPEG(55);
+  const jpeg = src.thumbnail.toJPEG(50);
+  return jpeg.length > 400000 ? src.thumbnail.toJPEG(30) : jpeg;
 }
 
 /** Small JPEG of the image that will be shared, for the website's preview. */
@@ -453,7 +457,9 @@ function previewDataUrl() {
   if (img.isEmpty()) return '';
   const { width } = img.getSize();
   const small = width > 640 ? img.resize({ width: 640, quality: 'good' }) : img;
-  return `data:image/jpeg;base64,${small.toJPEG(70).toString('base64')}`;
+  let jpeg = small.toJPEG(70);
+  if (jpeg.length > 200000) jpeg = (width > 480 ? img.resize({ width: 480, quality: 'good' }) : small).toJPEG(55);
+  return `data:image/jpeg;base64,${jpeg.toString('base64')}`;
 }
 
 const REMOTE_LABELS = {

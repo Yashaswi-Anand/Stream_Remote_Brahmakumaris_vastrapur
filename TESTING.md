@@ -1,10 +1,38 @@
-# Test Report: Zoom Stream Automation 2.0.0
+# Test Report: Zoom Stream Automation 2.1.0
 
 Test machine: Windows 11 Home 10.0.26300 (64-bit), time zone India Standard Time, Zoom Workplace **7.2.1.48556** (per-user install), Node 22.20, Electron 45. Date: 27 Oct 2026.
 
 Legend: ✅ verified on this machine · ⚠️ implemented, needs a live Zoom meeting/YouTube account to verify · ℹ️ by design / platform limit
 
-## Remote control website (2.0.0, 6 Nov 2026, local server on this PC)
+## Remote control website on Firebase (2.1.0, 16 Nov 2026, Firebase emulators on this PC)
+
+Automated: desktop `npm test` 29/29 pass. `npm run test:firebase` 2/2 pass against the Auth + Realtime Database emulators:
+- **Security rules test:**
+  - owner claim needs the setup code, and the code can never be read;
+  - invites are single-use and tied to the invited email;
+  - clients can't promote themselves, read people, invites or the log, or create pairing codes;
+  - pairing codes are single-use and expire;
+  - only the paired PC writes its status;
+  - commands are checked (allowed actions and values, the sender's own email, server time);
+  - removing a person or PC revokes access at once.
+- **Desktop connector test:** the real `RemoteClient` pairs, publishes state and preview, runs commands (including the PC's own error message), streams frames only while watched, goes offline/online with the switch, and notices removal.
+
+Manual, in the browser pane and a separate test copy of the desktop app (own settings folder, `npm run web:local`):
+- ✅ Owner created with the setup code; Admin → Add a PC → the test copy paired.
+  - `config.json` holds only the address and ids.
+  - The Firebase key is in the Windows-encrypted `remote-device.bin`.
+- ✅ Website showed "PC online", Zoom "Not running" and the PC's activity. "Choose image" came back with the PC's real error ("That image is no longer in the image folder.").
+- ✅ Live screen: 960×540 frames of about 32 KB every 2 s; the desktop showed the viewing notice. Closing the view stopped it and removed the frame.
+- ✅ Invite link → client set a password → controls (no Admin); a client's command worked; the `/admin` address shows Home for a client.
+- ✅ Download page with no GitHub release yet: shows "No release has been published yet".
+- ✅ Owner removed the PC → the desktop Remote tab shows "This PC was removed on the website. Pair it again."
+- ✅ Phone layout (375 px) checked.
+- ⚠️ Not yet tested:
+  - on a real Firebase project (the hosting security headers / CSP only apply there);
+  - from a real phone;
+  - Start/End Stream on a live meeting from the website.
+
+## Remote control website (2.0.0, 6 Nov 2026, local Node.js server, replaced in 2.1.0)
 
 Automated: desktop `npm test` 29/29 pass (incl. 5 new remote tests that run the real connector against the real server); `server/` `npm test` 4/4 pass.
 

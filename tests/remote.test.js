@@ -2,29 +2,11 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('fs');
-const os = require('os');
 const path = require('path');
 
-const { RemoteClient, remoteState, normalizeServerUrl } = require('../src/main/remote');
+const { RemoteClient, remoteState, normalizeServerUrl, normalizePairingCode } = require('../src/main/remote');
 const { createActions } = require('../src/main/actions');
 const { normalizeConfig, createDefaultConfig } = require('../src/services/config/schema');
-
-// The website server lives in server/ with its own packages.
-const WebSocket = require('../server/node_modules/ws');
-const { loadConfig } = require('../server/src/config');
-const { FileStore } = require('../server/src/store/fileStore');
-const { createApp } = require('../server/src/app');
-
-const until = async (fn, ms = 4000) => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    const v = await fn();
-    if (v) return v;
-    await new Promise((r) => setTimeout(r, 25));
-  }
-  throw new Error('timed out');
-};
 
 function memoryStore(config = createDefaultConfig('2.0.0')) {
   let data = normalizeConfig(config, '2.0.0');
@@ -89,101 +71,12 @@ test('shared actions: daily schedule from the website saves like the Edit Time d
   assert.throws(() => actions.shareImage(), /already running/);
 });
 
-test('desktop connector pairs with the website, answers commands and sends frames only while watched', async (t) => {
-  // Website server with an owner account and a client signed in.
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zsr-'));
-  const config = loadConfig({ DATA_DIR: dir, SETUP_CODE: 'CODE-0000' });
-  config.db = null;
-  const sstore = new FileStore(dir);
-  await sstore.init();
-  const app = createApp({ config, store: sstore, log: { error() {} } });
-  await new Promise((r) => app.server.listen(0, '127.0.0.1', r));
-  const base = `http://127.0.0.1:${app.server.address().port}`;
-  let cookie = '';
-  const call = async (method, url, body) => {
-    const res = await fetch(base + url, { method, headers: { 'Content-Type': 'application/json', 'X-ZSR': '1', Cookie: cookie }, body: body ? JSON.stringify(body) : undefined });
-    const set = res.headers.get('set-cookie');
-    if (set) cookie = set.split(';')[0];
-    return res.json();
-  };
-  await call('POST', '/api/setup', { code: 'CODE-0000', email: 'owner@x.com', password: 'ownerpassword' });
-  const { code } = await call('POST', '/api/devices/pairing-code');
-
-  // Desktop side with fakes for the parts that need Electron.
-  let token = '';
-  const ran = [];
-  let frames = 0;
-  const appState = { busy: false };
-  const client = new RemoteClient({
-    store: memoryStore(),
-    logger: quietLogger,
-    tokenStore: { read: () => token, write: (v) => (token = v), clear: () => (token = '') },
-    appVersion: '2.0.0',
-    defaultName: 'TEST-PC',
-    getState: () => ({ workflow: { busy: appState.busy }, images: { selectedName: 'a.jpg' } }),
-    runCommand: async (action, args, by) => {
-      ran.push({ action, args, by });
-      if (action === 'shareImage') throw new Error('No meeting is open.');
-      return { ok: true };
-    },
-    captureFrame: async () => (frames++, Buffer.from([0xff, 0xd8, 0xff])),
-    makePreview: async () => 'data:image/jpeg;base64,AAAA',
-  });
-  t.after(async () => {
-    client.stop();
-    await app.close();
-  });
-
-  await assert.rejects(() => client.pair(base, 'WRNG-CODE'), /Wrong or expired/);
-  const paired = await client.pair(base, code);
-  assert.equal(paired.deviceName, 'TEST-PC');
-  assert.ok(token.length > 30);
-  assert.equal(client.store.get().remote.deviceId.length, 36);
-  await until(() => client.status.connection === 'connected');
-
-  // The phone sees the PC and its state, and the preview.
-  const phone = new WebSocket(`${base.replace('http', 'ws')}/ws`, { headers: { Cookie: cookie, Origin: base } });
-  const inbox = [];
-  phone.on('message', (d, bin) => inbox.push(bin ? { binary: d } : JSON.parse(d.toString())));
-  const devices = await until(() => inbox.find((m) => m.type === 'devices' && m.devices.length));
-  assert.equal(devices.devices[0].online, true);
-  phone.send(JSON.stringify({ type: 'select', deviceId: devices.devices[0].id }));
-  await until(() => inbox.find((m) => m.type === 'state'));
-  assert.equal((await until(() => inbox.find((m) => m.type === 'preview'))).dataUrl, 'data:image/jpeg;base64,AAAA');
-
-  // State changes reach the phone.
-  appState.busy = true;
-  client.stateChanged();
-  await until(() => inbox.find((m) => m.type === 'state' && m.state.workflow.busy === true));
-
-  // Commands run on the PC; failures come back with the PC's message.
-  phone.send(JSON.stringify({ type: 'command', id: 'k1', action: 'startStream' }));
-  assert.equal((await until(() => inbox.find((m) => m.id === 'k1'))).ok, true);
-  assert.deepEqual(ran[0], { action: 'startStream', args: {}, by: 'owner@x.com' });
-  phone.send(JSON.stringify({ type: 'command', id: 'k2', action: 'shareImage' }));
-  assert.equal((await until(() => inbox.find((m) => m.id === 'k2'))).error, 'No meeting is open.');
-
-  // No frames until someone watches; frames stop when they stop watching.
-  await new Promise((r) => setTimeout(r, 200));
-  assert.equal(frames, 0);
-  phone.send(JSON.stringify({ type: 'watch', on: true }));
-  await until(() => inbox.find((m) => m.binary));
-  assert.equal(client.status.watching, true);
-  phone.send(JSON.stringify({ type: 'watch', on: false }));
-  await until(() => client.status.watching === false);
-  const after = frames;
-  await new Promise((r) => setTimeout(r, 1700));
-  assert.equal(frames, after);
-
-  // Turning remote control off disconnects; on reconnects.
-  client.setEnabled(false);
-  await until(() => inbox.some((m) => m.type === 'devices' && m.devices[0] && !m.devices[0].online));
-  client.setEnabled(true);
-  await until(() => client.status.connection === 'connected');
-
-  // Removing the PC on the website stops it for good.
-  await call('DELETE', `/api/devices/${devices.devices[0].id}`);
-  await until(() => client.status.connection === 'error');
-  assert.match(client.status.error, /removed|Pair/);
-  phone.close();
+test('pairing codes are normalized and command events are merged like the database', () => {
+  assert.equal(normalizePairingCode(' k7q2 9mxa '), 'K7Q2-9MXA');
+  let m = RemoteClient.applyEvent({}, 'put', { path: '/', data: { a: { action: 'x' }, b: { action: 'y' } } });
+  m = RemoteClient.applyEvent(m, 'put', { path: '/a', data: null });
+  m = RemoteClient.applyEvent(m, 'put', { path: '/c', data: { action: 'z' } });
+  m = RemoteClient.applyEvent(m, 'patch', { path: '/', data: { d: 1 } });
+  assert.deepEqual(m, { b: { action: 'y' }, c: { action: 'z' }, d: 1 });
+  assert.deepEqual(RemoteClient.applyEvent(m, 'put', { path: '/', data: null }), {});
 });

@@ -75,8 +75,8 @@ export default function RemoteTab({ state, act, pending, toast }) {
               </p>
               <label className="field">
                 <span>Website address</span>
-                <input type="url" value={url} placeholder="https://stream.yourdomain.com" onChange={(e) => setUrl(e.target.value)} />
-                <small className="muted">For a test on this Wi-Fi you can use http://localhost:8787 or http://192.168.x.x:8787.</small>
+                <input type="url" value={url} placeholder="https://your-project.web.app" onChange={(e) => setUrl(e.target.value)} />
+                <small className="muted">The address of your Stream Remote website (Firebase Hosting). For a local test: http://localhost:5555.</small>
               </label>
               <label className="field">
                 <span>Pairing code</span>
@@ -94,10 +94,10 @@ export default function RemoteTab({ state, act, pending, toast }) {
 
         <Card title="How it works" className="span-2">
           <ul className="plain-list">
-            <li>This PC connects out to your website; nothing on this PC is opened to the internet.</li>
+            <li>This PC connects out to your website's Firebase database; nothing on this PC is opened to the internet.</li>
             <li>The phone's buttons run the same steps as this window (Start Stream, Share, End Stream, schedule).</li>
             <li>The PC screen is sent only while someone has "Show live screen" open, and you see a notice here when it is.</li>
-            <li>This PC's access key is stored encrypted by Windows, not in the settings file. Remove the PC on the website or unpair here to revoke it.</li>
+            <li>This PC signs in to Firebase with its own key, stored encrypted by Windows (not in the settings file). Remove the PC on the website, or unpair here, to revoke it.</li>
             <li>The PC must be on, signed in and unlocked, with this app open, for the website to control it.</li>
           </ul>
         </Card>
@@ -106,7 +106,7 @@ export default function RemoteTab({ state, act, pending, toast }) {
       {confirm && (
         <ConfirmDialog
           title="Unpair this PC?"
-          message="The website will no longer be able to control this PC. To use it again, pair it with a new code."
+          message="This PC is removed from the website and can no longer be controlled from it. To use it again, pair it with a new code."
           confirmLabel="Unpair"
           danger
           onConfirm={() => {

@@ -9,7 +9,7 @@
   <link rel="icon" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <script type="module" src="/app.js"></script>
 </head>
 <body>
   <div id="boot" class="boot">Loading…</div>
@@ -24,6 +24,7 @@
       <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
       <p class="form-error" data-error></p>
       <button class="btn primary block" type="submit">Sign in</button>
+      <button class="btn ghost small" id="btn-forgot" type="button">Forgot password?</button>
     </form>
   </section>
 
@@ -31,7 +32,7 @@
     <form class="auth-card" id="setup-form">
       <img class="auth-logo" src="/icon-192.png" alt="">
       <h1>Create the owner account</h1>
-      <p class="muted">First start only. The setup code is shown where the server runs (or is the SETUP_CODE you set).</p>
+      <p class="muted">First start only. Use the setup code you saved in the Firebase console (Realtime Database → <code>secrets/setupCode</code>).</p>
       <label>Setup code<input name="code" autocomplete="off" required></label>
       <label>Your email<input name="email" type="email" autocomplete="username" required></label>
       <label>Password (10+ characters)<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
@@ -45,12 +46,21 @@
     <form class="auth-card" id="invite-form">
       <img class="auth-logo" src="/icon-192.png" alt="">
       <h1>Set your password</h1>
-      <p class="muted">You were invited as <strong data-invite-email></strong>.</p>
+      <p class="muted">You were invited as <strong data-invite-email></strong>. Choose a password (if you already have an account with this email, enter its password).</p>
       <label>Password (10+ characters)<input name="password" type="password" autocomplete="new-password" minlength="10" required></label>
       <label>Repeat password<input name="password2" type="password" autocomplete="new-password" minlength="10" required></label>
       <p class="form-error" data-error></p>
       <button class="btn primary block" type="submit">Save and sign in</button>
     </form>
+  </section>
+
+  <section class="view auth" data-view="noaccess" hidden>
+    <div class="auth-card">
+      <img class="auth-logo" src="/icon-192.png" alt="">
+      <h1>No access</h1>
+      <p class="muted">You are signed in as <strong id="noaccess-email"></strong>, but this account has not been given access. Ask the owner for an invite link.</p>
+      <button class="btn block" id="btn-noaccess-logout" type="button">Sign out</button>
+    </div>
   </section>
 
   <!-- App shell ---------------------------------------------------------------------------->
@@ -169,7 +179,7 @@
       <div class="card-head"><h2>Desktop app</h2><span class="pill" id="dl-version"></span></div>
       <p class="muted">Zoom Stream Automation for the Windows 10/11 PC that runs Zoom. Download it on that PC.</p>
       <div class="stack" id="dl-files"></div>
-      <p class="muted small" id="dl-empty" hidden>No installer has been uploaded to the website yet.</p>
+      <p class="muted small" id="dl-empty" hidden>No release has been published yet. The owner publishes the installers as a GitHub release.</p>
     </section>
     <section class="card">
       <div class="card-head"><h2>After installing</h2></div>
@@ -188,6 +198,7 @@
       <button class="btn primary block" id="btn-pair" type="button">Add a PC</button>
       <div class="banner info" id="pair-box" hidden>
         <span>In the desktop app, open <strong>Remote</strong>, enter this website's address and this code:</span>
+        <code class="pair-code small-code" id="pair-site"></code>
         <code class="pair-code" id="pair-code"></code>
         <span class="small" id="pair-expiry"></span>
       </div>
