@@ -405,6 +405,7 @@ function startLive() {
     if (!S.pcs[S.pcId]) selectPc(ids.includes(remembered) ? remembered : ids.find((id) => isOnline(id)) || ids[0] || null);
     renderPc();
     if (!$('device-list').closest('[data-view]').hidden) renderDevices();
+    pairCheck();
   });
   sub('presence', (v) => {
     S.presence = v || {};
@@ -943,20 +944,76 @@ function renderDevices() {
   );
 }
 
-$('btn-pair').onclick = async () => {
+// ---- Pair a new PC: code box with copy buttons, countdown and a "paired" notice ----
+const PAIR_MS = 10 * 60000;
+const pairing = { code: '', expiresAt: 0, timer: null };
+
+function pairTick() {
+  if (!pairing.code || !$('pair-done').hidden) return clearInterval(pairing.timer);
+  const left = pairing.expiresAt - now();
+  const expired = left <= 0;
+  const m = Math.max(0, Math.floor(left / 60000));
+  const sec = String(Math.max(0, Math.floor((left % 60000) / 1000))).padStart(2, '0');
+  $('pair-expiry').textContent = expired ? 'This code has expired.' : `Expires in ${m}:${sec} (at ${clockText(pairing.expiresAt)}) · works once`;
+  $('pair-bar').style.width = `${Math.max(0, Math.min(100, (left / PAIR_MS) * 100))}%`;
+  $('pair-box').classList.toggle('expired', expired);
+  $('pair-new').hidden = !expired;
+  if (expired) clearInterval(pairing.timer);
+}
+
+/** Called when the PC list changes: a PC that used the open code is now paired. */
+function pairCheck() {
+  if (!pairing.code || $('pair-box').hidden) return;
+  const pc = Object.values(S.pcs).find((x) => x.code === pairing.code);
+  if (!pc) return;
+  clearInterval(pairing.timer);
+  $('pair-done').textContent = `✓ Paired: "${pc.name}" is now in your systems list.`;
+  $('pair-done').hidden = false;
+  $('pair-foot').hidden = true;
+  $('pair-box').classList.add('paired');
+}
+
+async function newPairingCode() {
   try {
     const code = pairingCode();
-    const expiresAt = now() + 10 * 60000;
+    const expiresAt = now() + PAIR_MS;
     await set(ref(S.db, `pairing/${code}`), { createdBy: S.user.uid, expiresAt });
     audit('Created a PC pairing code');
+    Object.assign(pairing, { code, expiresAt });
     $('pair-code').textContent = code;
     $('pair-site').textContent = location.origin;
-    $('pair-expiry').textContent = `Valid until ${clockText(expiresAt)}, one use.`;
+    $('pair-done').hidden = true;
+    $('pair-foot').hidden = false;
+    $('pair-box').classList.remove('paired', 'expired');
     $('pair-box').hidden = false;
+    $('btn-pair').hidden = true;
+    clearInterval(pairing.timer);
+    pairing.timer = setInterval(pairTick, 1000);
+    pairTick();
+    $('pair-box').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch (err) {
     toast(niceError(err), '', 'error');
   }
+}
+$('btn-pair').onclick = newPairingCode;
+$('pair-new').onclick = newPairingCode;
+$('pair-close').onclick = () => {
+  clearInterval(pairing.timer);
+  pairing.code = '';
+  $('pair-box').hidden = true;
+  $('btn-pair').hidden = false;
 };
+for (const b of document.querySelectorAll('[data-copy]')) {
+  b.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText($(b.dataset.copy).textContent);
+      b.textContent = 'Copied ✓';
+      setTimeout(() => (b.textContent = 'Copy'), 1500);
+    } catch {
+      toast('Could not copy. Select the text and copy it by hand.', '', 'error');
+    }
+  };
+}
 
 bindForm('invite-user-form', async (v, form) => {
   const email = v.email.trim().toLowerCase();

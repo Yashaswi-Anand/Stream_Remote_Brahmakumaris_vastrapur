@@ -169,7 +169,6 @@ select { text-overflow: ellipsis; }
 .list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .list li > div { min-width: 0; display: grid; }
 .list li span { overflow-wrap: anywhere; }
-.pair-code { font-size: 1.8rem; font-weight: 800; letter-spacing: 0.12em; text-align: center; padding: 6px; }
 
 .dialog-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: grid; place-items: center; padding: 16px; z-index: 20; }
 .dialog { background: var(--card); border-radius: var(--radius); padding: 18px; width: 100%; max-width: 380px; }
@@ -241,3 +240,29 @@ select { text-overflow: ellipsis; }
 #confirm-input { width: 100%; margin: 4px 0 6px; }
 .pc-row .pc-switch { flex: 0 1 auto; min-width: 0; margin-top: 0; }
 #device-list li > div { flex: 1; }
+
+/* Pair a new PC */
+.pair-box { margin-top: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); padding: 14px; display: grid; gap: 12px; }
+.pair-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pair-head strong { font-size: 1.02rem; }
+.pair-close { border: 0; background: transparent; color: var(--muted); font-size: 1rem; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; }
+.pair-close:hover { background: var(--card); }
+.pair-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.pair-steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; font-size: 0.93rem; }
+.pair-num { width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: var(--primary-text); display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; }
+.pair-field { display: grid; gap: 5px; min-width: 0; }
+.pair-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.pair-copy-row { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 6px 6px 12px; min-width: 0; }
+.pair-copy-row code { flex: 1; min-width: 0; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+.pair-copy-row .btn { flex: none; }
+.pair-site { font-size: 0.88rem; overflow-wrap: anywhere; }
+.pair-code { font-size: 1.6rem; font-weight: 800; letter-spacing: 0.14em; color: var(--primary); white-space: nowrap; }
+.pair-foot { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 10px; }
+.pair-timer { grid-column: 1 / -1; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.pair-timer span { display: block; height: 100%; width: 100%; background: var(--primary); transition: width 1s linear; }
+#pair-expiry { color: var(--muted); }
+.pair-box.expired .pair-code { color: var(--muted); text-decoration: line-through; }
+.pair-box.expired #pair-expiry { color: var(--danger); font-weight: 600; }
+.pair-box.expired [data-copy="pair-code"] { visibility: hidden; }
+.pair-done { background: var(--card); border: 1px solid var(--success); color: var(--success); border-radius: 10px; padding: 10px 12px; font-weight: 600; font-size: 0.93rem; }
+@media (max-width: 380px) { .pair-code { font-size: 1.3rem; letter-spacing: 0.1em; } }
