@@ -4,7 +4,7 @@ Stream Remote (the phone website) runs on **Firebase**, free on the **Spark** pl
 
 | Part | Firebase service |
 | --- | --- |
-| Website files (`web/`) | Hosting, at **https://stream-remote-bkvastrapur.web.app** |
+| Website files (`web/`) | Hosting, at **https://stream-automation-bkvastrapur.web.app** |
 | Owner / client sign-in | Authentication (Email/Password) |
 | PC sign-in (one per paired PC) | Authentication (Anonymous) |
 | PC status, button presses, live screen | Realtime Database, protected by `database.rules.json` |
@@ -71,8 +71,8 @@ npm run deploy
 This uploads the website (`web/`) and the database rules. Run `npm run deploy` again after any change to `web/` or the rules.
 
 ## 6. First use
-1. Open **https://stream-remote-bkvastrapur.web.app**. The first visit shows **Create the owner account**: enter the setup code from step 3, your email and a password (8+ characters).
-2. **Admin → Add a PC**. In the desktop app (2.1.0 or later), go to the **Remote** tab and enter the website address `https://stream-remote-bkvastrapur.web.app` and the code.
+1. Open **https://stream-automation-bkvastrapur.web.app**. The first visit shows **Create the owner account**: enter the setup code from step 3, your email and a password (8+ characters).
+2. **Admin → Add a PC**. In the desktop app (2.1.0 or later), go to the **Remote** tab and enter the website address `https://stream-automation-bkvastrapur.web.app` and the code.
 3. **Admin → People → Invite by email** creates a one-time link (valid 7 days) for the client.
 4. Lost password? Use **Forgot password?** on the sign-in page. Firebase emails a reset link.
 
@@ -84,11 +84,11 @@ On GitHub, open the repository → **Releases → Draft a new release**:
 
 ## This project's addresses
 - Live project: **stream-remote-bk** (Spark plan). Database: Singapore, `https://stream-remote-bk-default-rtdb.asia-southeast1.firebasedatabase.app`.
-- Website: **https://stream-remote-bkvastrapur.web.app**. This is an extra Hosting site, because a project's own ID can't be renamed.
-  - `firebase.json` has two hosting targets, set in `.firebaserc`:
-    - `main` → `stream-remote-bkvastrapur` (the website, from `web/`);
-    - `old` → `stream-remote-bk`, which redirects every page of `https://stream-remote-bk.web.app` to the new address.
-  - The new address is listed under Authentication → Settings → Authorized domains.
+- Website: **https://stream-automation-bkvastrapur.web.app**. It's an extra Hosting site in the same project, because a project's own ID can't be renamed.
+  - `firebase.json` hosting targets (set in `.firebaserc`):
+    - `main` → `stream-automation-bkvastrapur` (the website, from `web/`);
+    - `old` → `stream-remote-bk` and `old2` → `stream-remote-bkvastrapur`, which redirect every page to the website. Paired PCs that still have an old address keep working through the redirect.
+- Email/password sign-in works on any of these addresses. The Authentication → Settings → Authorized domains list only matters for Google/phone sign-in or custom email links.
 
 ## Optional: your own domain
 Go to **Hosting → Add custom domain**, enter for example `remote.yourdomain.com`, and add the DNS records it shows in Hostinger's DNS editor. Firebase adds the https certificate itself. Then add the domain under **Authentication → Settings → Authorized domains**.

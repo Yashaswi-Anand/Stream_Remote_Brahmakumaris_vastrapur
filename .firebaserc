@@ -6,10 +6,13 @@
     "stream-remote-bk": {
       "hosting": {
         "main": [
-          "stream-remote-bkvastrapur"
+          "stream-automation-bkvastrapur"
         ],
         "old": [
           "stream-remote-bk"
+        ],
+        "old2": [
+          "stream-remote-bkvastrapur"
         ]
       }
     },
@@ -20,8 +23,12 @@
         ],
         "old": [
           "demo-stream-remote-old"
+        ],
+        "old2": [
+          "demo-stream-remote-old2"
         ]
       }
     }
-  }
+  },
+  "etags": {}
 }

@@ -56,12 +56,28 @@
       "redirects": [
         {
           "source": "/",
-          "destination": "https://stream-remote-bkvastrapur.web.app/",
+          "destination": "https://stream-automation-bkvastrapur.web.app/",
           "type": 301
         },
         {
           "source": "/:path*",
-          "destination": "https://stream-remote-bkvastrapur.web.app/:path*",
+          "destination": "https://stream-automation-bkvastrapur.web.app/:path*",
+          "type": 301
+        }
+      ]
+    },
+    {
+      "target": "old2",
+      "public": "firebase/old-site",
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "https://stream-automation-bkvastrapur.web.app/",
+          "type": 301
+        },
+        {
+          "source": "/:path*",
+          "destination": "https://stream-automation-bkvastrapur.web.app/:path*",
           "type": 301
         }
       ]
