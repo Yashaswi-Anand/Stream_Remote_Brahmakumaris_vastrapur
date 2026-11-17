@@ -59,7 +59,7 @@ process.on('SIGINT', () => child.kill('SIGINT'));
     .filter((i) => i && i.family === 'IPv4' && !i.internal && !/^169\.254\./.test(i.address))
     .map((i) => `http://${i.address}:5555`);
   console.log('\n────────────────────────────────────────────────────────────');
-  console.log(' Stream Remote (local test, Firebase emulators)');
+  console.log(' Stream Automation (local test, Firebase emulators)');
   console.log('   On this PC:     http://localhost:5555');
   for (const u of lan) console.log(`   On your Wi-Fi:  ${u}`);
   console.log(`   Setup code:     ${SETUP_CODE}   (first visit: create the owner account)`);

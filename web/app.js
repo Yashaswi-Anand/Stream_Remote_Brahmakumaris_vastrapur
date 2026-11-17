@@ -110,20 +110,55 @@ function toast(message, hint = '', tone = '') {
   setTimeout(() => t.remove(), tone === 'error' ? 8000 : 3500);
 }
 
-function confirmDialog(title, text, yes = 'Yes') {
+function confirmDialog(title, text, yes = 'Yes', { input = null, check = null } = {}) {
   return new Promise((resolve) => {
+    const box = $('confirm-input');
+    const err = $('confirm-error');
     $('confirm-title').textContent = title;
     $('confirm-text').textContent = text;
     $('confirm-yes').textContent = yes;
+    $('confirm-yes').className = input == null ? 'btn danger' : 'btn primary';
+    box.hidden = input == null;
+    box.value = input ?? '';
+    err.hidden = true;
     $('confirm').hidden = false;
+    if (input != null) box.focus(), box.select();
     const done = (v) => {
       $('confirm').hidden = true;
-      $('confirm-yes').onclick = $('confirm-no').onclick = null;
+      $('confirm-yes').onclick = $('confirm-no').onclick = box.onkeydown = null;
       resolve(v);
     };
-    $('confirm-yes').onclick = () => done(true);
-    $('confirm-no').onclick = () => done(false);
+    $('confirm-yes').onclick = () => {
+      if (input == null) return done(true);
+      const problem = check ? check(box.value) : '';
+      if (problem) {
+        err.textContent = problem;
+        err.hidden = false;
+        return;
+      }
+      done(box.value);
+    };
+    box.onkeydown = (e) => e.key === 'Enter' && $('confirm-yes').onclick();
+    $('confirm-no').onclick = () => done(input == null ? false : null);
   });
+}
+
+/** Owner only: give a paired system a new name (shown in the dropdown and in the desktop app). */
+async function renamePc(id) {
+  const pc = S.pcs[id];
+  if (!pc || S.me?.role !== 'owner') return;
+  const name = await confirmDialog('Rename this system', `New name for "${pc.name}":`, 'Save', {
+    input: pc.name,
+    check: (v) => (!v.trim() ? 'Type a name.' : v.trim().length > 60 ? 'Use at most 60 characters.' : Object.entries(S.pcs).some(([k, x]) => k !== id && x.name.trim().toLowerCase() === v.trim().toLowerCase()) ? 'Another system already has this name.' : ''),
+  });
+  if (name == null || name.trim() === pc.name) return;
+  try {
+    await set(ref(S.db, `pcs/${id}/name`), name.trim());
+    audit('Renamed a PC', `${pc.name} → ${name.trim()}`);
+    toast(`Renamed to "${name.trim()}".`);
+  } catch (err) {
+    toast(niceError(err), '', 'error');
+  }
 }
 
 const timeText = (t) => (t ? new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '');
@@ -476,6 +511,7 @@ function renderPc() {
     sw.replaceChildren(...opts.map(([id, label]) => el('option', { value: id }, label)));
   }
   if (S.pcId && document.activeElement !== sw) sw.value = S.pcId;
+  $('pc-rename').hidden = !pc || S.me?.role !== 'owner';
   if (!S.connected) setPill($('pc-pill'), 'No connection', 'bad');
   else if (!pc) setPill($('pc-pill'), 'No PC');
   else setPill($('pc-pill'), online ? 'PC online' : 'PC offline', online ? 'ok' : 'bad');
@@ -489,6 +525,7 @@ function renderPc() {
 
   render();
 }
+$('pc-rename').onclick = () => renamePc(S.pcId);
 $('pc-switch').onchange = (e) => {
   selectPc(e.target.value);
   renderPc();
@@ -880,6 +917,7 @@ function renderDevices() {
             'li',
             {},
             el('div', {}, el('span', {}, d.name), el('span', { class: 'muted small' }, online ? `Online${p?.version ? ` · app v${p.version}` : ''}` : `Offline${p?.lastSeen ? ` · last seen ${timeText(p.lastSeen)}` : ''}`)),
+            el('button', { class: 'btn small', type: 'button', onclick: () => renamePc(id) }, 'Rename'),
             el(
               'button',
               {

@@ -90,7 +90,13 @@ const rules = {
         '.read': isPc('$pc'),
         // A PC adds itself with a valid pairing code; the owner (or the PC itself, when unpaired) removes it.
         '.write': `${ownerDeletes} || ${pcDeletes('$pc')} || (${signedIn} && !data.exists() && newData.exists())`,
-        '.validate': `$pc.length === 36 && newData.hasChildren(['name', 'uid', 'pairedAt', 'code']) && newData.child('uid').val() === auth.uid && newData.child('pairedAt').val() === now && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 60 && root.child('pairing/' + ${code} + '/expiresAt').val() > now && !root.child('pairing/' + ${code} + '/usedBy').exists() && newData.parent().parent().child('pairing/' + ${code} + '/usedBy').val() === $pc`,
+        // Once paired, only the name can change (the owner renames it, see name below).
+        '.validate': `data.exists() ? (newData.hasChildren(['name', 'uid', 'pairedAt', 'code']) && ${UNCHANGED(['uid', 'pairedAt', 'code'])}) : ($pc.length === 36 && newData.hasChildren(['name', 'uid', 'pairedAt', 'code']) && newData.child('uid').val() === auth.uid && newData.child('pairedAt').val() === now && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 60 && root.child('pairing/' + ${code} + '/expiresAt').val() > now && !root.child('pairing/' + ${code} + '/usedBy').exists() && newData.parent().parent().child('pairing/' + ${code} + '/usedBy').val() === $pc)`,
+        // The owner renames a paired PC (1-60 characters).
+        name: {
+          '.write': `${isOwner} && data.exists() && newData.exists()`,
+          '.validate': "newData.isString() && newData.val().replace(' ', '').length >= 1 && newData.val().length <= 60",
+        },
       },
     },
 

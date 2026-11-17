@@ -235,3 +235,9 @@ select { text-overflow: ellipsis; }
 
 /* Header system switcher (two or more paired systems) */
 .pc-switch { min-height: 32px; padding: 3px 28px 3px 8px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; width: auto; max-width: 100%; margin-top: 2px; background-color: var(--bg); }
+.pc-row { display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
+.pc-rename { border: 0; background: transparent; color: var(--muted, inherit); font-size: 1rem; padding: 2px 6px; min-height: 28px; cursor: pointer; border-radius: 6px; flex: none; }
+.pc-rename:hover, .pc-rename:focus-visible { background: var(--bg); }
+#confirm-input { width: 100%; margin: 4px 0 6px; }
+.pc-row .pc-switch { flex: 0 1 auto; min-width: 0; margin-top: 0; }
+#device-list li > div { flex: 1; }

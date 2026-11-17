@@ -322,6 +322,7 @@ class RemoteClient {
     this.watchers = {};
     this.streams.push(this.fb.stream(`commands/${id}`, token, (type, ev) => this.onCommandsEvent(type, ev), onEnd));
     this.streams.push(this.fb.stream(`watch/${id}`, token, (type, ev) => this.onWatchEvent(type, ev), onEnd));
+    this.streams.push(this.fb.stream(`pcs/${id}/name`, token, (type, ev) => this.onNameEvent(type, ev), onEnd));
   }
 
   async renewStreams(gen) {
@@ -434,6 +435,18 @@ class RemoteClient {
   }
 
   // ---- Live screen -------------------------------------------------------------------------------
+
+  /** The owner can rename this PC on the website; keep the name shown in the app in step. */
+  onNameEvent(type, ev) {
+    if (type !== 'put' || !ev || ev.path !== '/' || typeof ev.data !== 'string') return;
+    const name = ev.data.trim();
+    if (!name || name === this.config.deviceName) return;
+    this.store.update((c) => {
+      c.remote = { ...c.remote, deviceName: name };
+    });
+    this.logger.info('remote', `This PC was renamed on the website to "${name}".`);
+    this.setStatus({});
+  }
 
   onWatchEvent(type, ev) {
     this.watchers = RemoteClient.applyEvent(this.watchers, type, ev);

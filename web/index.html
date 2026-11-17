@@ -68,8 +68,11 @@
     <img class="top-logo" src="/icon-192.png" alt="">
     <div class="top-title">
       <strong>Stream Automation</strong>
-      <span id="pc-line" class="muted small"></span>
-      <select id="pc-switch" class="pc-switch" aria-label="Choose the system to control" hidden></select>
+      <div class="pc-row">
+        <span id="pc-line" class="muted small"></span>
+        <select id="pc-switch" class="pc-switch" aria-label="Choose the system to control" hidden></select>
+        <button class="pc-rename" id="pc-rename" type="button" title="Rename this system" aria-label="Rename this system" hidden>✎</button>
+      </div>
     </div>
     <span id="pc-pill" class="pill">…</span>
     <nav class="top-nav">
@@ -304,6 +307,8 @@
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
       <h3 id="confirm-title"></h3>
       <p id="confirm-text" class="muted"></p>
+      <input id="confirm-input" type="text" maxlength="60" autocomplete="off" hidden>
+      <p id="confirm-error" class="form-error" hidden></p>
       <div class="btn-row">
         <button class="btn" id="confirm-no" type="button">Cancel</button>
         <button class="btn danger" id="confirm-yes" type="button">Yes</button>
