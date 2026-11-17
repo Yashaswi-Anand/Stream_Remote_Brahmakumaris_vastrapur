@@ -76,7 +76,7 @@ export default function RemoteTab({ state, act, pending, toast }) {
               <label className="field">
                 <span>Website address</span>
                 <input type="url" value={url} placeholder="https://your-project.web.app" onChange={(e) => setUrl(e.target.value)} />
-                <small className="muted">The address of your Stream Remote website (Firebase Hosting). For a local test: http://localhost:5555.</small>
+                <small className="muted">The address of your Stream Automation website (Firebase Hosting). For a local test: http://localhost:5555.</small>
               </label>
               <label className="field">
                 <span>Pairing code</span>

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f6feb">
-  <title>Stream Remote</title>
+  <title>Stream Automation</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
@@ -18,7 +18,7 @@
   <section class="view auth" data-view="login" hidden>
     <form class="auth-card" id="login-form">
       <img class="auth-logo" src="/icon-192.png" alt="">
-      <h1>Stream Remote</h1>
+      <h1>Stream Automation</h1>
       <p class="muted">Sign in to control the stream PC.</p>
       <label>Email<input name="email" type="email" autocomplete="username" required></label>
       <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
@@ -67,8 +67,9 @@
   <header class="topbar" id="topbar" hidden>
     <img class="top-logo" src="/icon-192.png" alt="">
     <div class="top-title">
-      <strong>Stream Remote</strong>
+      <strong>Stream Automation</strong>
       <span id="pc-line" class="muted small"></span>
+      <select id="pc-switch" class="pc-switch" aria-label="Choose the system to control" hidden></select>
     </div>
     <span id="pc-pill" class="pill">…</span>
     <nav class="top-nav">
@@ -81,10 +82,6 @@
 
   <main class="view dash" data-view="home" hidden>
     <div class="banner warn" id="offline-banner" hidden></div>
-    <div class="field-row" id="pc-select-row" hidden>
-      <label class="small muted" for="pc-select">PC</label>
-      <select id="pc-select"></select>
-    </div>
 
     <section class="card">
       <div class="card-head">

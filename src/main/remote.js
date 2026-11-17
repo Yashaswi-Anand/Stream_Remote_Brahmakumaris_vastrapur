@@ -51,10 +51,10 @@ async function loadSiteConfig(base, fetchImpl) {
   } catch (err) {
     throw new Error(`Could not reach ${base} (${err.cause?.code || err.message}).`);
   }
-  if (!res.ok) throw new Error(`${base} is not a Stream Remote website (config.json: ${res.status}).`);
+  if (!res.ok) throw new Error(`${base} is not a Stream Automation website (config.json: ${res.status}).`);
   const json = await res.json().catch(() => null);
   const fb = json && json.firebase;
-  if (!fb) throw new Error(`${base} is not a Stream Remote website.`);
+  if (!fb) throw new Error(`${base} is not a Stream Automation website.`);
   const local = new URL(base);
   const emulated = LOCAL_HOST_RE.test(local.hostname) && local.port === '5555'; // npm run web:local
   if (fb.apiKey && !emulated) {
@@ -69,7 +69,7 @@ async function loadSiteConfig(base, fetchImpl) {
 }
 
 /**
- * Connects this PC to the Stream Remote website through its Firebase database (outgoing connections only;
+ * Connects this PC to the Stream Automation website through its Firebase database (outgoing connections only;
  * nothing listens on this PC). Publishes a compact state, runs the website's button presses through the same
  * actions as the app window, and captures the screen only while someone on the website is watching.
  */

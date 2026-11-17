@@ -43,7 +43,7 @@ export default function UpdateTab({ state, act, pending }) {
             </div>
           </div>
 
-          <p className="muted small">The app checks the Stream Remote GitHub releases for a newer version automatically (at start and twice a day).</p>
+          <p className="muted small">The app checks the Stream Automation GitHub releases for a newer version automatically (at start and twice a day).</p>
           {u.error && <div className="banner banner-danger">{u.error}</div>}
           {u.installing && (
             <div className="banner banner-info">
@@ -77,7 +77,7 @@ export default function UpdateTab({ state, act, pending }) {
             <summary className="muted small">Advanced: other update source</summary>
             <label className="field">
               <span>Release manifest URL (optional)</span>
-              <input type="url" value={url} placeholder="Default: GitHub releases of Stream Remote" onChange={(e) => setUrl(e.target.value)} onBlur={() => url !== settings.releaseManifestUrl && act('updateSettings', { releaseManifestUrl: url.trim() })} />
+              <input type="url" value={url} placeholder="Default: GitHub releases of Stream Automation" onChange={(e) => setUrl(e.target.value)} onBlur={() => url !== settings.releaseManifestUrl && act('updateSettings', { releaseManifestUrl: url.trim() })} />
               <small className="muted">
                 Leave empty to use GitHub. Otherwise an HTTPS JSON with <code>version</code>, <code>releaseNotes</code> and <code>downloadUrl</code>.
               </small>

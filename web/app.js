@@ -1,4 +1,4 @@
-/* Stream Remote — mobile website for the Zoom Stream Automation desktop app, on Firebase
+/* Stream Automation — mobile website for the Zoom Stream Automation desktop app, on Firebase
  * (Hosting + Authentication + Realtime Database). No framework; all text is set with textContent.
  * Who may read or change what is enforced by database.rules.json, not by this page. */
 
@@ -463,6 +463,19 @@ function renderPc() {
   const online = !!pc && isOnline(S.pcId);
   const count = Object.keys(S.pcs).length;
   $('pc-line').textContent = pc ? pc.name : count ? '' : 'No PC paired yet';
+  // Two or more systems: the name in the header becomes a dropdown; buttons control only the selected system.
+  const sw = $('pc-switch');
+  $('pc-line').hidden = count >= 2;
+  sw.hidden = count < 2;
+  const opts = Object.entries(S.pcs)
+    .sort(([, a], [, b]) => String(a.name).localeCompare(String(b.name)))
+    .map(([id, x]) => [id, `${x.name} · ${isOnline(id) ? 'online' : 'offline'}`]);
+  const sig = JSON.stringify(opts);
+  if (sw.dataset.sig !== sig) {
+    sw.dataset.sig = sig;
+    sw.replaceChildren(...opts.map(([id, label]) => el('option', { value: id }, label)));
+  }
+  if (S.pcId && document.activeElement !== sw) sw.value = S.pcId;
   if (!S.connected) setPill($('pc-pill'), 'No connection', 'bad');
   else if (!pc) setPill($('pc-pill'), 'No PC');
   else setPill($('pc-pill'), online ? 'PC online' : 'PC offline', online ? 'ok' : 'bad');
@@ -474,13 +487,13 @@ function renderPc() {
   else if (!online) banner.textContent = `${pc.name} is offline${last ? ` (last seen ${timeText(last)})` : ''}. Make sure the PC is on and signed in to Windows; Zoom Stream Automation starts by itself in the background (version 2.3.0 or later).`;
   banner.hidden = S.connected && !!pc && online;
 
-  const sel = $('pc-select');
-  $('pc-select-row').hidden = count < 2;
-  sel.replaceChildren(...Object.entries(S.pcs).map(([id, x]) => el('option', { value: id }, `${x.name}${isOnline(id) ? '' : ' (offline)'}`)));
-  if (S.pcId) sel.value = S.pcId;
   render();
 }
-$('pc-select').onchange = (e) => selectPc(e.target.value);
+$('pc-switch').onchange = (e) => {
+  selectPc(e.target.value);
+  renderPc();
+  toast(`Now controlling ${S.pcs[S.pcId]?.name || 'this system'}.`, 'Buttons act only on this system.');
+};
 
 const STEP_MARK = { done: '✓', failed: '✕', running: '…', waiting: '…', skipped: '–', pending: '○' };
 const ZOOM_TEXT = { connected: ['Connected', 'ok'], disconnected: ['Not running', 'bad'], not_installed: ['Not installed', 'bad'], unknown: ['Checking…', ''] };

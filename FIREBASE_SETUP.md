@@ -1,6 +1,6 @@
-# Putting Stream Remote online with Firebase
+# Putting Stream Automation online with Firebase
 
-Stream Remote (the phone website) runs on **Firebase**, free on the **Spark** plan, with no card needed:
+Stream Automation (the phone website) runs on **Firebase**, free on the **Spark** plan, with no card needed:
 
 | Part | Firebase service |
 | --- | --- |
@@ -35,7 +35,7 @@ You do steps 1–4 once in the browser. Step 5 runs on this PC. Total time is ab
 
 ## 4. Copy the website settings into `web/config.json`
 1. Click the **⚙ (Project settings) → General → Your apps → Web (`</>`)**.
-2. Register an app called `Stream Remote`. Leave "Firebase Hosting" unticked.
+2. Register an app called `Stream Automation`. Leave "Firebase Hosting" unticked.
 3. Copy the values from the `firebaseConfig` that is shown into [`web/config.json`](web/config.json):
    ```json
    {

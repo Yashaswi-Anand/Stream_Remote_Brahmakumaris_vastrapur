@@ -232,3 +232,6 @@ select { text-overflow: ellipsis; }
 .segmented button { font: inherit; font-weight: 600; font-size: 0.9rem; border: 0; border-radius: 9px; padding: 9px 6px; min-height: 40px; background: transparent; color: var(--text); cursor: pointer; }
 .segmented button.active { background: var(--primary); color: var(--primary-text); }
 .now-playing { margin: 10px 0 0 !important; padding: 9px 12px; border-radius: 10px; background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Header system switcher (two or more paired systems) */
+.pc-switch { min-height: 32px; padding: 3px 28px 3px 8px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; width: auto; max-width: 100%; margin-top: 2px; background-color: var(--bg); }

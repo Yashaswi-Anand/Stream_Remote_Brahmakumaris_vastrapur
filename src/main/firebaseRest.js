@@ -2,7 +2,7 @@
 
 /**
  * Minimal Firebase client over the public REST APIs (Authentication + Realtime Database), used by the
- * desktop app to talk to the Stream Remote website's database. No Firebase SDK is needed in Electron.
+ * desktop app to talk to the Stream Automation website's database. No Firebase SDK is needed in Electron.
  *
  * config: { apiKey, databaseURL, projectId, emulators?: { auth, database } }
  * With `emulators`, requests go to the local Firebase Emulator Suite instead (for testing on this PC).
