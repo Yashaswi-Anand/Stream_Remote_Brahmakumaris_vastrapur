@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('zsa', {
   remotePair: invoke('remote:pair'),
   remoteSetEnabled: invoke('remote:setEnabled'),
   remoteUnpair: invoke('remote:unpair'),
+  remoteRename: invoke('remote:rename'),
   clearLogs: invoke('logs:clear'),
   openLogFolder: invoke('logs:openFolder'),
 });

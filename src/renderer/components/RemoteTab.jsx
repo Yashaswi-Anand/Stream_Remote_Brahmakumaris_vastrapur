@@ -16,11 +16,21 @@ export default function RemoteTab({ state, act, pending, toast }) {
   const [url, setUrl] = useState(r.serverUrl || '');
   const [code, setCode] = useState('');
   const [confirm, setConfirm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [newName, setNewName] = useState('');
   useEffect(() => {
     if (r.serverUrl) setUrl(r.serverUrl);
   }, [r.serverUrl]);
 
   const [tone, label] = CONNECTION[r.connection] || CONNECTION.off;
+
+  const saveName = async () => {
+    const res = await act('remoteRename', newName.trim());
+    if (res?.ok) {
+      setEditing(false);
+      toast('success', `This PC is now called "${res.result.deviceName}".`);
+    }
+  };
 
   const pair = async () => {
     const res = await act('remotePair', url.trim(), code.trim());
@@ -50,7 +60,40 @@ export default function RemoteTab({ state, act, pending, toast }) {
                 </div>
                 <div>
                   <span className="muted small">This PC is called</span>
-                  <strong>{r.deviceName}</strong>
+                  {editing ? (
+                    <div className="rename-row">
+                      <input
+                        value={newName}
+                        maxLength={60}
+                        autoFocus
+                        aria-label="New name for this PC"
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newName.trim()) saveName();
+                          if (e.key === 'Escape') setEditing(false);
+                        }}
+                      />
+                      <Button variant="primary" busy={pending.remoteRename} disabled={!newName.trim()} onClick={saveName}>
+                        Save
+                      </Button>
+                      <Button onClick={() => setEditing(false)}>Cancel</Button>
+                    </div>
+                  ) : (
+                    <div className="rename-row">
+                      <strong>{r.deviceName}</strong>
+                      <Button
+                        disabled={r.connection !== 'connected'}
+                        title={r.connection !== 'connected' ? 'Connect to the website first' : 'Rename this PC'}
+                        onClick={() => {
+                          setNewName(r.deviceName || '');
+                          setEditing(true);
+                        }}
+                      >
+                        Rename
+                      </Button>
+                    </div>
+                  )}
+                  <span className="muted small">Shown in the website's system list. The owner can also rename it there.</span>
                   {r.connectedAt && r.connection === 'connected' && <span className="muted small">Connected {formatDateTime(r.connectedAt)}</span>}
                 </div>
               </div>

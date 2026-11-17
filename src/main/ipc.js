@@ -383,6 +383,7 @@ function registerIpc({ ctx, actions, remote, buildState, pushState, refreshImage
     remote.setEnabled(enabled);
   });
   handle('remote:unpair', async () => remote.unpair());
+  handle('remote:rename', async (name) => remote.rename(name));
 
   // ---- Logs --------------------------------------------------------------------------------
   handle('logs:clear', async () => logger.clear());

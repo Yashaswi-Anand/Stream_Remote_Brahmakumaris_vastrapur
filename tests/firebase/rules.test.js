@@ -76,11 +76,12 @@ test('owner claim, invites, pairing, commands and removal follow the rules', asy
   assert.equal((await fb.db('GET', `pcs/${pcId}`, undefined, client.token)).name, 'STREAM-PC');
   await denied(fb.db('GET', `pcs/${pcId}`, undefined, pc2.idToken));
 
-  // Only the owner can rename a paired PC, and only its name.
+  // The owner or the PC itself can rename a paired PC, and only its name.
   await fb.db('PUT', `pcs/${pcId}/name`, 'Upjao', owner.token);
   assert.equal(await fb.db('GET', `pcs/${pcId}/name`, undefined, pc.idToken), 'Upjao', 'the PC sees its new name');
   await denied(fb.db('PUT', `pcs/${pcId}/name`, 'Hacked', client.token));
-  await denied(fb.db('PUT', `pcs/${pcId}/name`, 'Hacked', pc.idToken));
+  await fb.db('PUT', `pcs/${pcId}/name`, 'Hall PC', pc.idToken); // the PC renames itself from the desktop app
+  await denied(fb.db('PUT', `pcs/${pcId}/name`, 'Hacked', pc2.idToken));
   await denied(fb.db('PUT', `pcs/${pcId}/name`, '   ', owner.token));
   await denied(fb.db('PUT', `pcs/${pcId}/name`, 'x'.repeat(61), owner.token));
   await denied(fb.db('PUT', `pcs/${pcId}/uid`, owner.uid, owner.token));

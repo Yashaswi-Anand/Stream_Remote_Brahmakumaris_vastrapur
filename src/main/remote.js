@@ -177,6 +177,29 @@ class RemoteClient {
     return { serverUrl: base, deviceName: pcName };
   }
 
+  /** Renames this PC on the website (shown in the website's system list and here). */
+  async rename(name) {
+    const pcName = String(name || '').trim();
+    if (!pcName) throw new Error('Type a name.');
+    if (pcName.length > 60) throw new Error('Use at most 60 characters.');
+    if (!this.paired) throw new Error('Pair this PC first.');
+    if (pcName === this.config.deviceName) return { deviceName: pcName };
+    if (!this.fb || this.status.connection !== 'connected') throw new Error('Not connected to the website. Check the internet connection and that "Allow remote control" is on, then try again.');
+    const token = await this.ensureToken(this.gen);
+    try {
+      await this.fb.db('PUT', `pcs/${this.config.deviceId}/name`, pcName, token, { silent: true });
+    } catch (err) {
+      if (err.code === 'PERMISSION_DENIED') throw new Error('The website refused the new name. Rename it on the website instead (Admin → PCs → Rename).');
+      throw err;
+    }
+    this.store.update((c) => {
+      c.remote = { ...c.remote, deviceName: pcName };
+    });
+    this.logger.success('remote', `This PC is now called "${pcName}".`);
+    this.setStatus({});
+    return { deviceName: pcName };
+  }
+
   async unpair() {
     const { deviceId } = this.config;
     // Remove this PC from the website too (best effort; the owner can also remove it there).

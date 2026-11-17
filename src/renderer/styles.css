@@ -356,3 +356,5 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .segmented button { border: 0; border-radius: 8px; padding: 8px; background: transparent; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
 .segmented button.active { background: var(--primary); color: #fff; }
 .now-playing { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(26, 143, 76, 0.12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rename-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.rename-row input { flex: 1 1 160px; min-width: 0; }
