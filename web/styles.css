@@ -110,8 +110,30 @@ input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 1
 .top-logo { width: 36px; height: 36px; border-radius: 10px; }
 .top-title { display: grid; line-height: 1.2; flex: 1; min-width: 0; }
 .top-title span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.top-nav { display: flex; gap: 2px; width: 100%; justify-content: flex-end; }
-@media (min-width: 640px) { .top-nav { width: auto; } }
+/* Menu tabs: a full-width row of icon tabs on phones, compact icon + label on wider screens. */
+.top-nav {
+  display: flex; width: calc(100% + 32px); margin: 4px -16px -10px;
+  border-top: 1px solid var(--line);
+}
+.tab {
+  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 8px 4px 7px; border: 0; border-bottom: 3px solid transparent; background: transparent;
+  color: var(--muted); font: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab[hidden] { display: none; }
+.tab svg { width: 22px; height: 22px; flex: none; }
+.tab span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tab:hover { color: var(--text); background: var(--bg); }
+.tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-out:hover { color: var(--danger); }
+@media (min-width: 640px) {
+  .top-nav { width: auto; margin: 0; border-top: 0; gap: 4px; }
+  .tab { flex: none; flex-direction: row; gap: 6px; padding: 7px 12px; border-bottom: 0; border-radius: 9px; font-size: 0.88rem; }
+  .tab svg { width: 18px; height: 18px; }
+  .tab.active { background: var(--info-bg); color: var(--primary); }
+}
 
 /* Dashboard */
 .dash { max-width: 640px; margin: 0 auto; padding: 12px 16px 32px; display: grid; gap: 12px; }

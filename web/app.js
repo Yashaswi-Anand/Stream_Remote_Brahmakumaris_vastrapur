@@ -203,9 +203,13 @@ function show(view) {
   for (const v of document.querySelectorAll('[data-view]')) v.hidden = v.dataset.view !== view;
   const inApp = view === 'home' || view === 'admin' || view === 'download';
   $('topbar').hidden = !inApp;
-  $('nav-admin').hidden = !(S.me && S.me.role === 'owner') || view === 'admin';
-  $('nav-home').hidden = view === 'home';
-  $('nav-download').hidden = view === 'download';
+  // Menu tabs stay visible; the current page is highlighted.
+  $('nav-admin').hidden = !(S.me && S.me.role === 'owner');
+  for (const [id, v] of [['nav-home', 'home'], ['nav-download', 'download'], ['nav-admin', 'admin']]) {
+    $(id).classList.toggle('active', view === v);
+    if (view === v) $(id).setAttribute('aria-current', 'page');
+    else $(id).removeAttribute('aria-current');
+  }
   if (inApp) startLive();
   if (view === 'admin') loadAdmin();
   if (view === 'download') loadDownloads();
