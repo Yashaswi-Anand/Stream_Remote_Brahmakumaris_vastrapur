@@ -110,27 +110,48 @@ input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 1
 .top-logo { width: 36px; height: 36px; border-radius: 10px; }
 .top-title { display: grid; line-height: 1.2; flex: 1; min-width: 0; }
 .top-title span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Menu tabs: a full-width row of icon tabs on phones, compact icon + label on wider screens. */
-.top-nav {
-  display: flex; width: calc(100% + 32px); margin: 4px -16px -10px;
-  border-top: 1px solid var(--line);
+/* Menu: on phones a dropdown behind the ☰ button; on wide screens inline icon tabs. */
+.menu-btn {
+  display: grid; place-items: center; width: 40px; height: 40px; flex: none;
+  border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--text); cursor: pointer;
 }
+.menu-btn svg { width: 22px; height: 22px; }
+.menu-btn path { transition: transform 0.2s, opacity 0.2s; transform-origin: center; }
+.topbar.menu-open .menu-btn { background: var(--bg); }
+.topbar.menu-open .mb-1 { transform: translateY(5px) rotate(45deg); }
+.topbar.menu-open .mb-2 { opacity: 0; }
+.topbar.menu-open .mb-3 { transform: translateY(-5px) rotate(-45deg); }
+.top-nav {
+  display: none; position: absolute; top: calc(100% + 6px); right: 12px; min-width: 210px;
+  flex-direction: column; gap: 2px; padding: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+.topbar.menu-open .top-nav { display: flex; }
 .tab {
-  flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  padding: 8px 4px 7px; border: 0; border-bottom: 3px solid transparent; background: transparent;
-  color: var(--muted); font: inherit; font-size: 0.74rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 11px 12px; border: 0; border-radius: 9px; background: transparent;
+  color: var(--text); font: inherit; font-size: 0.95rem; font-weight: 600; text-align: left; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 .tab[hidden] { display: none; }
-.tab svg { width: 22px; height: 22px; flex: none; }
-.tab span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.tab:hover { color: var(--text); background: var(--bg); }
+.tab svg { width: 20px; height: 20px; flex: none; color: var(--muted); }
+.tab:hover { background: var(--bg); }
 .tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-.tab-out:hover { color: var(--danger); }
+.tab.active { background: var(--info-bg); color: var(--primary); }
+.tab.active svg { color: var(--primary); }
+.tab-out { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 9px 9px; }
+.tab-out, .tab-out svg { color: var(--danger); }
 @media (min-width: 640px) {
-  .top-nav { width: auto; margin: 0; border-top: 0; gap: 4px; }
-  .tab { flex: none; flex-direction: row; gap: 6px; padding: 7px 12px; border-bottom: 0; border-radius: 9px; font-size: 0.88rem; }
+  .menu-btn { display: none; }
+  .top-nav { display: flex; position: static; flex-direction: row; gap: 4px; padding: 0; min-width: 0; background: none; border: 0; box-shadow: none; }
+  .tab { width: auto; gap: 6px; padding: 7px 12px; font-size: 0.88rem; color: var(--muted); }
+  .tab svg { width: 18px; height: 18px; color: currentColor; }
+  .tab:hover { color: var(--text); }
+  .tab-out { margin-top: 0; border-top: 0; border-radius: 9px; }
+  .tab-out, .tab-out svg { color: var(--muted); }
+  .tab-out:hover, .tab-out:hover svg { color: var(--danger); }
+}
   .tab svg { width: 18px; height: 18px; }
   .tab.active { background: var(--info-bg); color: var(--primary); }
 }

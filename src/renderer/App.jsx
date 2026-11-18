@@ -7,6 +7,41 @@ import { Badge } from './components/ui.jsx';
 import logoUrl from './assets/logo.png';
 import { ZOOM_STATUS, isNewer } from './util.js';
 
+// Same line icons as the website's menu.
+const ICONS = {
+  home: (
+    <>
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+    </>
+  ),
+  power: (
+    <>
+      <path d="M12 3v8" />
+      <path d="M6.3 6.8a8 8 0 1 0 11.4 0" />
+    </>
+  ),
+  remote: (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2" />
+      <path d="M11 17.5h2" />
+    </>
+  ),
+  update: (
+    <>
+      <path d="M20 12a8 8 0 0 1-14.3 4.9" />
+      <path d="M4 12a8 8 0 0 1 14.3-4.9" />
+      <path d="M18 3v4.5h-4.5" />
+      <path d="M6 21v-4.5h4.5" />
+    </>
+  ),
+};
+const NavIcon = ({ id }) => (
+  <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {ICONS[id]}
+  </svg>
+);
+
 const TABS = [
   ['home', 'Home'],
   ['power', 'Auto Power On'],
@@ -72,8 +107,11 @@ export default function App() {
         </div>
         <nav>
           {TABS.map(([id, name]) => (
-            <button key={id} className={`nav-item${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>
-              {name}
+            <button key={id} className={`nav-item${tab === id ? ' active' : ''}`} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
+              <span className="nav-label">
+                <NavIcon id={id} />
+                {name}
+              </span>
               {id === 'remote' && state.remote.watching && <span className="nav-dot" />}
               {id === 'update' && state.updates.latestVersion && isNewer(state.updates.latestVersion, state.updates.currentVersion) && <span className="nav-dot" />}
             </button>

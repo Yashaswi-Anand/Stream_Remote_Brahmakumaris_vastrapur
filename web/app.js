@@ -364,6 +364,21 @@ async function logout() {
   go('/');
 }
 $('nav-logout').onclick = logout;
+
+// Phones: the menu sits behind the ☰ button.
+const setMenu = (open) => {
+  $('topbar').classList.toggle('menu-open', open);
+  $('menu-btn').setAttribute('aria-expanded', String(open));
+};
+$('menu-btn').onclick = (e) => {
+  e.stopPropagation();
+  setMenu(!$('topbar').classList.contains('menu-open'));
+};
+$('top-nav').addEventListener('click', () => setMenu(false));
+document.addEventListener('click', (e) => {
+  if (!$('topbar').contains(e.target)) setMenu(false);
+});
+document.addEventListener('keydown', (e) => e.key === 'Escape' && setMenu(false));
 $('btn-noaccess-logout').onclick = logout;
 $('nav-admin').onclick = () => go('/admin');
 $('nav-download').onclick = () => go('/download');
@@ -509,7 +524,7 @@ function renderPc() {
   sw.hidden = count < 2;
   const opts = Object.entries(S.pcs)
     .sort(([, a], [, b]) => String(a.name).localeCompare(String(b.name)))
-    .map(([id, x]) => [id, `${x.name} · ${isOnline(id) ? 'online' : 'offline'}`]);
+    .map(([id, x]) => [id, isOnline(id) ? x.name : `${x.name} · offline`]);
   const sig = JSON.stringify(opts);
   if (sw.dataset.sig !== sig) {
     sw.dataset.sig = sig;
